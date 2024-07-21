@@ -15,7 +15,7 @@ In this Discord application, come to battle other players to a game of fast proc
  - Propaganda Warfare: Articles serve as attacks, containing hidden messages or links that players must decipher to counter.
  - Masked Titles: Article titles like "XX-YY-ZZZZ" hint at numbers or codes players must find.
  - Option Sets: Players counter attacks by selecting correct summary options of the article, mixing truths and falsehoods (e.g., "Earth is flat, sun isn’t real, birds are drones").
- 
+
 ### Psychological Warfare
 - Timer Pressure: Players have limited time (e.g., 15 seconds) to respond.
 - Flashing Animations: Visual overloads to complicate reading and decision-making.
