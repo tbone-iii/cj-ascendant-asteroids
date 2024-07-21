@@ -25,35 +25,7 @@ In this Discord application, come to battle other players to a game of fast proc
 
 ### Style: Ruff
 
-It will check your codebase and warn you about any non-conforming lines.
-It is run with the command `ruff check` in the project root.
-
-Here is a sample output:
-
-```shell
-$ ruff check
-app.py:1:5: N802 Function name `helloWorld` should be lowercase
-app.py:1:5: ANN201 Missing return type annotation for public function `helloWorld`
-app.py:2:5: D400 First line should end with a period
-app.py:2:5: D403 First word of the first line should be capitalized: `docstring` -> `Docstring`
-app.py:3:15: W292 No newline at end of file
-Found 5 errors.
-```
-
-Each line corresponds to an error. The first part is the file path, then the line number, and the column index.
-Then comes the error code, a unique identifier of the error, and then a human-readable message.
-
-If, for any reason, you do not wish to comply with this specific error on a specific line, you can add `# noqa: CODE` at the end of the line.
-For example:
-
-```python
-def helloWorld():  # noqa: N802
-    ...
-
-```
-
-This will ignore the function naming issue and pass linting.
-
+It is run with the command `ruff check` in the project root. Because a pre-commit hook is used for this repo, the codebase MUST pass "ruff check".
 
 ### Entering the virtual environment
 
@@ -76,16 +48,6 @@ $ .venv/bin/Activate.ps1
 
 #### Installing the dependencies
 
-Once the environment is created and activated, use this command to install the development dependencies.
-
 ```shell
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 ```
-
-#### Exiting the environment
-
-```shell
-deactivate
-```
-
-Once the environment is activated, all the commands listed previously should work.
