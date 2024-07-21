@@ -95,5 +95,10 @@ def getGPTResponse(prompt_text:str):
     
     return response.choices[0].message.content
 
-res = getGPTResponse("Please summarize the following article\nI need you to add in a fake sentence with false facts for a game, please surround this sentence with []\n" + INPUT_ARTICLE)
+
+# [] is fake
+# {} is real
+res = getGPTResponse("Please summarize the following article\n \
+I need you to add in a fake sentence with false facts for a game, please surround this sentence with []\n \
+Please pick 3 other sentences, don't change them, just put {} around them" + INPUT_ARTICLE)
 print (res)
