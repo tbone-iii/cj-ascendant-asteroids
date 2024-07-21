@@ -85,6 +85,40 @@ Barron Trump during a campaign event at Trump National Doral Golf Club in Miami,
 
 In May 2024, Barron graduated from Oxbridge Academy in Palm Beach, Florida, though he has not announced where he will attend college. Barron joined his father on the campaign trail in July at a rally in Doral, Florida."""
 
+class ArticleRawInfo:
+    def __init__(self, url):
+        self.url = url
+        # TODO rss parser or somethin for body text
+        self.body_text = INPUT_ARTICLE
+
+class Article:
+    def __init__(self, article_info: ArticleRawInfo, summery: str, show_output: bool):
+        self.article_info = article_info
+        self.summery = summery
+        self.sentence_options = []
+
+        scanning = False
+        for char in list(self.summery):
+            if char == '{' or char == '[':
+                if char == '[': 
+                    self.incorrect_option = len(self.sentence_options)
+
+                self.sentence_options.append("")
+                scanning = True
+
+            elif char == '}' or char == ']':
+                scanning = False
+
+            elif scanning:
+                self.sentence_options[-1] += char
+
+        if show_output:
+            for num, sentence in enumerate(self.sentence_options):
+                if num == self.incorrect_option:
+                    print(f"NOT TRUE -> {num}: {sentence}")
+                else:
+                    print(f"{num}: {sentence}")
+
 def getGPTResponse(prompt_text:str):
     response = openai.chat.completions.create(
         model=GPT_MODEL,
@@ -95,10 +129,15 @@ def getGPTResponse(prompt_text:str):
     
     return response.choices[0].message.content
 
+def getSummery(article_body: str) -> str:
+    res = getGPTResponse("Please summarize the following article\n \
+    I need you to add in a fake sentence with false facts for a game, please surround this sentence with []\n \
+    Please pick 3 other sentences, don't change them, just put {} around them\n" + article_body)
+
+    return res
 
 # [] is fake
 # {} is real
-res = getGPTResponse("Please summarize the following article\n \
-I need you to add in a fake sentence with false facts for a game, please surround this sentence with []\n \
-Please pick 3 other sentences, don't change them, just put {} around them" + INPUT_ARTICLE)
-print (res)
+article = ArticleRawInfo("someurl")
+Article(article, getSummery(article.body_text), True)
+
