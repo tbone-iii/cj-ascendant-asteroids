@@ -96,7 +96,7 @@ class ArticleRawInfo:
             self.body_text = body_text
 
 class Article:
-    def __init__(self, article_info: ArticleRawInfo, summery: str, show_output: bool=False):
+    def __init__(self, article_info: ArticleRawInfo, summery: str):
         self.article_info = article_info
         self.summery = summery
         self.sentence_options = []
@@ -116,12 +116,33 @@ class Article:
             elif scanning:
                 self.sentence_options[-1] += char
 
-        if show_output:
-            for num, sentence in enumerate(self.sentence_options):
-                if num == self.incorrect_option:
-                    print(f"NOT TRUE -> {num}: {sentence}")
-                else:
-                    print(f"{num}: {sentence}")
+    def __repr__(self):
+        options_out = ""
+        for num, sentence in enumerate(self.sentence_options):
+            if num == self.incorrect_option:
+                options_out += f"NOT TRUE -> {num}: {sentence}"
+            else:
+                options_out += f"{num}: {sentence}"
+
+            if len(sentence) > 80:
+                options_out += " TOOLONG"
+
+            options_out += "\n"
+
+        return f"""
+----- {self.article_info.url} -----
+----- TEXT BODY START -----
+{self.article_info.body_text}
+----- TEXT BODY END -----
+
+----- SUMMERY START -----
+{self.summery}
+----- SUMMERY END -----
+
+----- OPTIONS START -----
+{options_out}
+----- OPTIONS END -----
+"""
 
     def write(self) -> None:
         '''Adds this articles to the json file list of articles'''
@@ -172,11 +193,17 @@ def getGPTResponse(prompt_text:str):
     return response.choices[0].message.content
 
 def getSummery(article_body: str) -> str:
-    res = getGPTResponse("Please summarize the following article\n \
-    I need you to add in a fake sentence with false facts for a game, please surround this sentence with []\n \
-    Please pick 3 other sentences, don't change them, just put {} around them\n" + article_body)
+    # res = getGPTResponse("Please summarize the following article\n \
+    # I need you to add in a fake sentence with false facts for a game, please surround this sentence with []\n \
+    # Please pick 3 other sentences, don't change them, just put {} around them\n" + article_body)
+
+    res = getGPTResponse("Please summarize the following article in around facts, each fact sentence should be no longer than 10 words, label 3 of these sentces with {} (Please don't include bullet points or numbers in the brackets) then add a sentence containing fake information, wrapped in [] instead\n \
+    " + article_body)
 
     return res
 
 # [] is fake
 # {} is real
+ar = ArticleRawInfo("someurl")
+a = Article(ar, getSummery(ar.body_text))
+print(a)
