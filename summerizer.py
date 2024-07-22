@@ -124,7 +124,8 @@ class Article:
                     print(f"{num}: {sentence}")
 
     def write(self) -> None:
-        # Collect already saves articles
+        '''Adds this articles to the json file list of articles'''
+
         articles = Article.collect_articles()
 
         articles.append({
@@ -138,6 +139,8 @@ class Article:
 
     @staticmethod
     def collect_articles() -> dict:
+        '''Collects all articles jsons from file'''
+
         articles = []
         with open('articles.json') as f:
             data = json.load(f)
@@ -148,10 +151,12 @@ class Article:
 
     @staticmethod
     def create_article_with_json(data: json):
+        '''Creates an instance of Article with the given json data'''
         return Article(ArticleRawInfo(data["url"], data["body_text"]), data["summery"])
 
     @staticmethod
     def pick_random():
+        '''Picks and returns a random Article type from the json saved list'''
         articles = Article.collect_articles()
         picked_article = random.choice(articles)
         return Article.create_article_with_json(picked_article)
@@ -175,4 +180,3 @@ def getSummery(article_body: str) -> str:
 
 # [] is fake
 # {} is real
-print(Article.pick_random().summery)
