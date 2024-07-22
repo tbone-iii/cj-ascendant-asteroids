@@ -24,7 +24,7 @@ class BasicBot(commands.Bot):
     ) -> None:
         """Initialize commands.Bot subclass.
 
-        :return: None
+        :Return: None
         """
         if intents is None:
             intents = discord.Intents.default()
@@ -35,7 +35,7 @@ class BasicBot(commands.Bot):
         async def on_ready() -> None:
             """Bot event.
 
-            :return: None
+            :Return: None
             """
             print(f"logged on as {self.user}")
 
