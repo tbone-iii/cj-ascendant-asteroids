@@ -4,8 +4,14 @@ import discord
 from button_views import ButtonView
 from discord.ext import commands
 from dotenv import load_dotenv
+from exceptions import MissingTokenError
+from mention_target import MentionTarget
 
 load_dotenv()  # Loads .env contents
+
+# Configure base bot intents with message content enabled
+intents = discord.Intents.default()
+intents.message_content = True
 
 
 class BasicBot(commands.Bot):
@@ -13,21 +19,23 @@ class BasicBot(commands.Bot):
 
     def __init__(
         self,
-        *args: any,
-        command_prefix: str = ".",
-        intents: discord.Intents = discord.Intents.default,
+        intents: discord.Intents | None,
+        command_prefix: str = "/",
     ) -> None:
         """Initialize commands.Bot subclass.
 
-        :return: None
+        :Return: None
         """
-        super().__init__(*args, command_prefix=command_prefix, intents=intents)
+        if intents is None:
+            intents = discord.Intents.default()
+
+        super().__init__(command_prefix=command_prefix, intents=intents)
 
         @self.event
         async def on_ready() -> None:
             """Bot event.
 
-            :return: None
+            :Return: None
             """
             print(f"logged on as {self.user}")
 
@@ -50,7 +58,7 @@ class BasicBot(commands.Bot):
             embed.add_field(name="Field", value="field value")
             await context.send(embed=embed)
 
-        @self.command()
+        @self.command(name="create_button_example", description="Creates a view from ButtonViews containing buttons.")
         async def create_button(context: commands.Context) -> None:
             """Bot command.
 
@@ -59,24 +67,34 @@ class BasicBot(commands.Bot):
             """
             await context.send(view=ButtonView())
 
-        @self.command()
-        async def greet(context: commands.Context, mention: str = "") -> None:
+        @self.command(name="greet", description="Greets the server with the option to mention `everyone`.")
+        async def greet(context: commands.Context, mention_target_string: str = "") -> None:
             """Bot command.
 
             Description: Greets the server with the option to mention @everyone
-            (Ruff seems to strongly dislike mention being typed as a bool, so str it is)
             :Return: None
             """
-            await context.send(f'Greetings{" @everyone" if mention.lower()=="mention" else ""}!')
+            try:
+                mention_target = MentionTarget(mention_target_string)
+            except ValueError:
+                await context.send("Invalid mention target. Please try again.")
+                return
+
+            mention_value = " @everyone" if mention_target == MentionTarget.EVERYONE else ""
+            await context.send(f"Greetings{mention_value}!")
 
 
-# Bot Parameters -----------------------------
+def main() -> None:
+    """Configure and run the bot."""
+    bot = BasicBot(intents=intents)
+    token = os.getenv("TOKEN")
 
-intents = discord.Intents.default()
-intents.message_content = True
+    if token is None:
+        message = "Token is missing from environment variables."
+        raise MissingTokenError(message)
 
-# Run that mf --------------------------------
+    bot.run(token)
+
 
 if __name__ == "__main__":
-    bot = BasicBot(intents=intents)
-    bot.run(os.getenv("TOKEN"))
+    main()
