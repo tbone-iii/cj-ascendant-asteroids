@@ -1,7 +1,7 @@
 import os
 
 import discord
-from ButtonViews import ButtonView
+from button_views import ButtonView
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -32,15 +32,15 @@ class BasicBot(commands.Bot):
             print(f"logged on as {self.user}")
 
         @self.command()
-        async def ping(ctx: commands.Context) -> None:
+        async def ping(context: commands.Context) -> None:
             """Bot command.
 
             :Return: None
             """
-            await ctx.send("pong")
+            await context.send("pong")
 
         @self.command()
-        async def create_embed(ctx: commands.Context) -> None:
+        async def create_embed(context: commands.Context) -> None:
             """Bot command.
 
             Description: Creates a basic discord.Embed
@@ -48,26 +48,26 @@ class BasicBot(commands.Bot):
             """
             embed = discord.Embed(title="This is an embed")
             embed.add_field(name="Field", value="field value")
-            await ctx.send(embed=embed)
+            await context.send(embed=embed)
 
         @self.command()
-        async def create_button(ctx: commands.Context) -> None:
+        async def create_button(context: commands.Context) -> None:
             """Bot command.
 
             Description: Creates a view from ButtonViews containing buttons
             :Return: None
             """
-            await ctx.send(view=ButtonView())
+            await context.send(view=ButtonView())
 
         @self.command()
-        async def greet(ctx: commands.Context, mention: str = "") -> None:
+        async def greet(context: commands.Context, mention: str = "") -> None:
             """Bot command.
 
             Description: Greets the server with the option to mention @everyone
             (Ruff seems to strongly dislike mention being typed as a bool, so str it is)
             :Return: None
             """
-            await ctx.send(f'Greetings{" @everyone" if mention.lower()=="mention" else ""}!')
+            await context.send(f'Greetings{" @everyone" if mention.lower()=="mention" else ""}!')
 
 
 # Bot Parameters -----------------------------
