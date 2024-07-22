@@ -1,11 +1,13 @@
 import os
 
 import discord
-from button_views import ButtonView
 from discord.ext import commands
 from dotenv import load_dotenv
-from exceptions import MissingTokenError
-from mention_target import MentionTarget
+
+from article_overload.mention_target import MentionTarget
+
+from .button_views import ButtonView
+from .exceptions import MissingTokenError
 
 load_dotenv()  # Loads .env contents
 
@@ -58,7 +60,10 @@ class BasicBot(commands.Bot):
             embed.add_field(name="Field", value="field value")
             await context.send(embed=embed)
 
-        @self.command(name="create_button_example", description="Creates a view from ButtonViews containing buttons.")
+        @self.command(
+            name="create_button_example",
+            description="Creates a view from ButtonViews containing buttons.",
+        )
         async def create_button(context: commands.Context) -> None:
             """Bot command.
 
@@ -67,7 +72,10 @@ class BasicBot(commands.Bot):
             """
             await context.send(view=ButtonView())
 
-        @self.command(name="greet", description="Greets the server with the option to mention `everyone`.")
+        @self.command(
+            name="greet",
+            description="Greets the server with the option to mention `everyone`.",
+        )
         async def greet(context: commands.Context, mention_target_string: str = "") -> None:
             """Bot command.
 
