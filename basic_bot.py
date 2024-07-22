@@ -58,7 +58,7 @@ class BasicBot(commands.Bot):
             embed.add_field(name="Field", value="field value")
             await context.send(embed=embed)
 
-        @self.command()
+        @self.command(name="create_button_example", description="Creates a view from ButtonViews containing buttons.")
         async def create_button(context: commands.Context) -> None:
             """Bot command.
 
