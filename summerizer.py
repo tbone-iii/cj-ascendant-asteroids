@@ -1,6 +1,7 @@
 import openai
 import os
 import json
+import random
 import sys
 
 openai.api_key = sys.argv[1]
@@ -86,13 +87,16 @@ Barron Trump during a campaign event at Trump National Doral Golf Club in Miami,
 In May 2024, Barron graduated from Oxbridge Academy in Palm Beach, Florida, though he has not announced where he will attend college. Barron joined his father on the campaign trail in July at a rally in Doral, Florida."""
 
 class ArticleRawInfo:
-    def __init__(self, url):
+    def __init__(self, url: str, body_text: str=""):
         self.url = url
         # TODO rss parser or somethin for body text
-        self.body_text = INPUT_ARTICLE
+        if not body_text:
+            self.body_text = INPUT_ARTICLE
+        else:
+            self.body_text = body_text
 
 class Article:
-    def __init__(self, article_info: ArticleRawInfo, summery: str, show_output: bool):
+    def __init__(self, article_info: ArticleRawInfo, summery: str, show_output: bool=False):
         self.article_info = article_info
         self.summery = summery
         self.sentence_options = []
@@ -119,6 +123,39 @@ class Article:
                 else:
                     print(f"{num}: {sentence}")
 
+    def write(self) -> None:
+        # Collect already saves articles
+        articles = Article.collect_articles()
+
+        articles.append({
+            "url": self.article_info.url,
+            "body_text": self.article_info.body_text,
+            "summery": self.summery
+        })
+
+        with open('articles.json', 'w') as f:
+            json.dump(articles, f)
+
+    @staticmethod
+    def collect_articles() -> dict:
+        articles = []
+        with open('articles.json') as f:
+            data = json.load(f)
+            for article in data:
+                articles.append(article)
+
+        return articles
+
+    @staticmethod
+    def create_article_with_json(data: json):
+        return Article(ArticleRawInfo(data["url"], data["body_text"]), data["summery"])
+
+    @staticmethod
+    def pick_random():
+        articles = Article.collect_articles()
+        picked_article = random.choice(articles)
+        return Article.create_article_with_json(picked_article)
+
 def getGPTResponse(prompt_text:str):
     response = openai.chat.completions.create(
         model=GPT_MODEL,
@@ -138,6 +175,4 @@ def getSummery(article_body: str) -> str:
 
 # [] is fake
 # {} is real
-article = ArticleRawInfo("someurl")
-Article(article, getSummery(article.body_text), True)
-
+print(Article.pick_random().summery)
