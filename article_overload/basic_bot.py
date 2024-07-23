@@ -104,7 +104,10 @@ class BasicBot(commands.Bot):
             """
             author = context.author
             player = Player(
-                player_id=author.id, name=author.name, display_name=author.display_name, avatar_url=author.avatar.url,
+                player_id=author.id,
+                name=author.name,
+                display_name=author.display_name,
+                avatar_url=author.avatar.url,
             )
             self.game.add_player(player)
             self.game.start_game()
