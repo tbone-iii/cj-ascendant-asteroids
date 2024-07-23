@@ -1,9 +1,12 @@
 from discord import Interaction
-from discord.app_commands import MissingPermissions
+from discord.app_commands import AppCommandError, MissingPermissions
 from discord.ext import commands
 
 from article_overload.bot import ArticleOverloadBot
-from article_overload.tools.embeds import error_occurred, missing_permissions
+from article_overload.tools.embeds import (
+    create_error_occurred_embed,
+    create_missing_permissions_embed,
+)
 
 
 class Error(commands.Cog):
@@ -17,11 +20,11 @@ class Error(commands.Cog):
         """
         self.client = client
 
-    @commands.Cog.listener()
-    async def on_application_command_error(
+    @commands.Cog.listener("on_app_command_error")
+    async def on_app_command_error(
         self,
         interaction: Interaction,
-        error: Exception,
+        error: AppCommandError,
     ) -> None:
         """Error Listener.
 
@@ -30,17 +33,17 @@ class Error(commands.Cog):
         """
         if isinstance(error, MissingPermissions):
             await interaction.response.send_message(
-                embed=missing_permissions(error=error),
+                embed=create_missing_permissions_embed(error=error),
             )
 
         else:
-            await interaction.response.send_message(embed=error_occurred())
+            await interaction.response.send_message(embed=create_error_occurred_embed())
 
         raise error
 
 
 async def setup(client: ArticleOverloadBot) -> None:
-    """Sets up command.
+    """Set up command.
 
     Description: Sets up the Error Cog
     :Return: None

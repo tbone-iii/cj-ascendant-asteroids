@@ -1,5 +1,5 @@
-from discord import Button, ButtonStyle, Interaction, TextStyle
-from discord.ui import Modal, TextInput, View, button
+from discord import ButtonStyle, Interaction, TextStyle
+from discord.ui import Button, Modal, TextInput, View, button
 
 
 class Input(Modal):
@@ -15,15 +15,20 @@ class Input(Modal):
 
         self.view = view
 
-        self.first = TextInput(label=message, style=TextStyle.short, required=True)
+        self.first: TextInput = TextInput(
+            label=message,
+            style=TextStyle.short,
+            required=True,
+        )
         self.add_item(self.first)
 
     async def callback(self, interaction: Interaction) -> None:  # noqa: ARG002
         """Submit callback.
 
-        Description: Callback to check if a user has submittted the form.
+        Description: Callback to check if a user has submitted the form.
         :Return: None
         """
+        # TODO: where is the view.response coming from? appears to be missing attribute
         self.view.response = self.first.value
         self.stop()
 
@@ -46,8 +51,8 @@ class InputButton(View):
     @button(label="Submit", style=ButtonStyle.green)
     async def submit(
         self,
-        button: Button,
         interaction: Interaction,
+        _: Button,
     ) -> None:
         """Submit button.
 
@@ -67,7 +72,10 @@ class InputButton(View):
         :Return: Boolean
         """
         if interaction.user.id != self.org_user:
-            await interaction.send("You can't click this!", ephemeral=True)
+            await interaction.response.send_message(
+                "You can't click this!",
+                ephemeral=True,
+            )
             return False
 
         return True

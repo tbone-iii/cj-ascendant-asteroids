@@ -1,5 +1,6 @@
 from discord import Embed, Interaction, app_commands
 from discord.ext import commands
+from utils.game_classes import Game, Player
 
 from article_overload.bot import ArticleOverloadBot
 from article_overload.mention_target import MentionTarget
@@ -17,6 +18,7 @@ class Basic(commands.Cog):
         :Return: None
         """
         self.client = client
+        self.game = Game()
 
     @app_commands.command(name="ping", description=COMMAND_DESC["ping"])
     async def ping(self, interaction: Interaction) -> None:
@@ -75,9 +77,44 @@ class Basic(commands.Cog):
         mention_value = " @everyone" if mention_target == MentionTarget.EVERYONE else ""
         await interaction.response.send_message(f"Greetings{mention_value}!")
 
+    @app_commands.command(
+        name="article_overload",
+        description=COMMAND_DESC["game_start"],
+    )
+    async def article_overload(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Starts the game
+        :Return: None
+        """
+        author = interaction.user
+        url = author.avatar.url if author.avatar else ""
+        player = Player(
+            player_id=author.id,
+            name=author.name,
+            display_name=author.display_name,
+            avatar_url=url,
+        )
+        self.game.add_player(player)
+        self.game.start_game()
+
+        # Create an embed to display the player details
+        embed = self.game.create_start_game_embed(player)
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="end_game", description=COMMAND_DESC["game_end"])
+    async def end_game(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Ends the game
+        :Return: None
+        """
+        self.game.end_game()
+        await interaction.response.send_message("Game ended!")
+
 
 async def setup(client: ArticleOverloadBot) -> None:
-    """Sets up command.
+    """Set up command.
 
     Description: Sets up the Basic Cog
     :Return: None

@@ -54,31 +54,34 @@ def create_error_embed(title: str = "\u200b", description: str = "\u200b") -> Em
     return embed
 
 
-def get_json_file(path: str) -> dict:
+def get_json_file(file_path: str) -> dict:
     """JSON file reader.
 
     Description: Reads a json file.
     :Return: Dict
     """
-    with Path.open(path) as f:
+    path = Path(file_path)
+    with path.open("r") as f:
         return json.load(f)
 
 
-def update_json_file(data: dict, path: str) -> None:
+def update_json_file(data: dict, file_path: str) -> None:
     """JSON file updater.
 
     Description: Updates contents of a json file.
     :Return: None
     """
-    with Path.open(path, "w") as f:
+    path = Path(file_path)
+    with path.open("w") as f:
         json.dump(data, f)
 
 
-def read_text_file(path: str) -> str:
+def read_text_file(file_path: str) -> str:
     """Text file reader.
 
     Description: Reads a text file.
     :Return: String
     """
-    with Path.open(path) as f:
+    path = Path(file_path)
+    with path.open("r") as f:
         return f.read()

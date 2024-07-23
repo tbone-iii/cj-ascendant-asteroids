@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TOKEN: str = environ.get("TOKEN")
+TOKEN: str | None = environ.get("TOKEN")
 
 COLORS: dict[str, str] = {
     "red": "\033[31m",

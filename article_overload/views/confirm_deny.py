@@ -1,5 +1,5 @@
-from discord import Button, ButtonStyle, Interaction
-from discord.ui import View, button
+from discord import ButtonStyle, Interaction
+from discord.ui import Button, View, button
 
 
 class ConfirmDeny(View):
@@ -12,7 +12,7 @@ class ConfirmDeny(View):
         :Return: None
         """
         super().__init__()
-        self.value = None
+        self.value: bool | None = None  # TODO: Consider using enum here
         self.org_user = org_user
 
     @button(
@@ -22,8 +22,8 @@ class ConfirmDeny(View):
     )
     async def confirm(
         self,
-        button: Button,
-        interaction: Interaction,
+        _: Interaction,
+        __: Button,
     ) -> None:
         """Confirm button.
 
@@ -38,8 +38,8 @@ class ConfirmDeny(View):
     @button(label="No", emoji="<:Cross:779247977843523594>", style=ButtonStyle.red)
     async def deny(
         self,
-        button: Button,
-        interaction: Interaction,
+        _: Interaction,
+        __: Button,
     ) -> None:
         """Deny button.
 
@@ -58,13 +58,16 @@ class ConfirmDeny(View):
         :Return: Boolean
         """
         if interaction.user.id != self.org_user:
-            await interaction.send("You can't click this!", ephemeral=True)
+            await interaction.response.send_message(
+                "You can't click this!",
+                ephemeral=True,
+            )
             return False
 
         return True
 
     async def on_timeout(self) -> None:
-        """Timeout callback
+        """Timeout callback.
 
         Description: Callback for checking if the view has reached its timeout.
         :Return: None

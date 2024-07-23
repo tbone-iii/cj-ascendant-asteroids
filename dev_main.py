@@ -3,4 +3,4 @@ from article_overload.constants import TOKEN
 
 if __name__ == "__main__":
     bot = ArticleOverloadBot()
-    bot.run(TOKEN)
+    bot.start_bot(TOKEN)

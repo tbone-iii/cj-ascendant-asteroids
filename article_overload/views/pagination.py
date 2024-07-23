@@ -1,5 +1,5 @@
-from discord import Button, ButtonStyle, Interaction, SelectOption
-from discord.ui import Select, View, button
+from discord import ButtonStyle, Interaction, SelectOption
+from discord.ui import Button, Select, View, button
 
 
 class PaginationSelect(Select):
@@ -14,11 +14,11 @@ class PaginationSelect(Select):
         super().__init__(
             options=[
                 SelectOption(
-                    label=i["title"],
-                    description=i["description"],
-                    value=i["num"],
+                    label=datum["title"],
+                    description=datum["description"],
+                    value=datum["num"],
                 )
-                for i in data
+                for datum in data
             ],
         )
 
@@ -31,7 +31,7 @@ class PaginationSelect(Select):
         Description: Callback for checking if a value was selected.
         :Return: None
         """
-        await interaction.edit(
+        await interaction.response.edit_message(
             embed=self.full_data[int(self.values[0]) - 1]["embed"],
             view=PaginationView(
                 interaction.user.id,
@@ -44,6 +44,8 @@ class PaginationSelect(Select):
 class PaginationView(View):
     """Pagination view class."""
 
+    PAGE_SIZE = 25
+
     def __init__(self, org_user: int, data: list, page: int) -> None:
         """Subclass of View.
 
@@ -53,19 +55,20 @@ class PaginationView(View):
         super().__init__(timeout=600)
 
         self.org_user = org_user
-
         self.data = data
-
         self.page = page
 
-        for i in range(0, len(data), 25):
-            self.add_item(PaginationSelect(data[i : i + 25], self.data, page))
+        # TODO: Use itertools
+        for i in range(0, len(data), self.PAGE_SIZE):
+            self.add_item(
+                PaginationSelect(data[i : i + self.PAGE_SIZE], self.data, page),
+            )
 
     @button(emoji="<:left_arrow:1049429857488093275>", style=ButtonStyle.blurple)
     async def left_arrow(
         self,
-        button: Button,
         interaction: Interaction,
+        _: Button,
     ) -> None:
         """Left button.
 
@@ -78,8 +81,8 @@ class PaginationView(View):
     @button(emoji="<:right_arrow:1049430086257999882>", style=ButtonStyle.blurple)
     async def right_arrow(
         self,
-        button: Button,
         interaction: Interaction,
+        _: Button,
     ) -> None:
         """Right button.
 
@@ -95,7 +98,7 @@ class PaginationView(View):
         Description: Callback to update embed and page content.
         :Return: None
         """
-        await interaction.edit(embed=self.data[self.page]["embed"])
+        await interaction.response.edit_message(embed=self.data[self.page]["embed"])
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         """Interaction check callback.
@@ -104,7 +107,9 @@ class PaginationView(View):
         :Return: Boolean
         """
         if interaction.user.id != self.org_user:
-            await interaction.send("You can't click this!", ephemeral=True)
-            return None
-
+            await interaction.response.send_message(
+                "You can't click this!",
+                ephemeral=True,
+            )
+            return False
         return True

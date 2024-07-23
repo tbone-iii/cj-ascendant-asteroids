@@ -1,5 +1,7 @@
-from discord import Button, ButtonStyle, Interaction, SelectOption
-from discord.ui import Select, View, button
+from discord import ButtonStyle, Interaction, SelectOption
+from discord.ui import Button, Select, View, button
+
+from article_overload.exceptions import ViewDoesNotExistError
 
 
 class SelectOptions(Select):
@@ -32,12 +34,15 @@ class SelectOptions(Select):
             max_values=max_val,
         )
 
-    async def callback(self, interaction: Interaction) -> None:  # noqa: ARG002
+    async def callback(self, _: Interaction) -> None:
         """Select callback.
 
         Description: Callback for checking if a value was selected.
         :Return: None
         """
+        if self.view is None:  # TODO: Needs review as to what view is here
+            raise ViewDoesNotExistError
+
         self.view.clicked.extend(self.values)
 
 
@@ -49,8 +54,7 @@ class SelectOptionsView(View):
         org_user: int,
         option_titles: list,
         option_values: list,
-        min_val: int = 1,
-        max_val: int = 1,
+        value_range: tuple[int, int] = (1, 1),
     ) -> None:
         """Subclass of View.
 
@@ -60,25 +64,24 @@ class SelectOptionsView(View):
         super().__init__(timeout=600)
 
         self.org_user = org_user
-        self.clicked = []
-        self.min_val = min_val
-        self.max_val = max_val
+        self.clicked: list = []  # TODO: specify the list element type
+        self.min_val, self.max_val = value_range
 
         for i in range(0, len(option_titles), 25):
             self.add_item(
                 SelectOptions(
                     option_titles[i : i + 25],
                     option_values[i : i + 25],
-                    min_val,
-                    max_val,
+                    self.min_val,
+                    self.max_val,
                 ),
             )
 
     @button(label="Complete", style=ButtonStyle.green, row=4)
     async def submit(
         self,
-        interaction: Interaction,
-        button: Button,
+        _: Interaction,
+        __: Button,
     ) -> None:
         """Complete button.
 
@@ -94,11 +97,16 @@ class SelectOptionsView(View):
         :Return: Boolean
         """
         if interaction.user.id != self.org_user:
-            await interaction.send("You can't click this!", ephemeral=True)
-            return None
+            await interaction.response.send_message(
+                "You can't click this!",
+                ephemeral=True,
+            )
+            return False
 
         if len(self.clicked) == self.max_val:
-            await interaction.send(f"Maximum selections is {self.max_val}!")
-            return None
+            await interaction.response.send_message(
+                f"Maximum selections is {self.max_val}!",
+            )
+            return False
 
         return True
