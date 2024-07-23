@@ -1,2 +1,2 @@
-class MissingTokenError(Exception):
-    """For when a token is missing from the environment variables."""
+class InvalidTokenError(Exception):
+    """For when a token is invalid."""
