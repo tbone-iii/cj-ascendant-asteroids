@@ -1,11 +1,14 @@
 import os
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from utils.game_classes import Game, Player
+
 from article_overload.mention_target import MentionTarget
+
 from .button_views import ButtonView
 from .exceptions import MissingTokenError
-from utils.game_classes import Game, Player, Ability
 
 load_dotenv()  # Loads .env contents
 
