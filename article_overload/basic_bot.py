@@ -2,9 +2,9 @@ import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from article_overload.button_views import ButtonView
-from article_overload.exceptions import MissingTokenError
 from article_overload.mention_target import MentionTarget
+from .button_views import ButtonView
+from .exceptions import MissingTokenError
 from utils.game_classes import Game, Player, Ability
 
 load_dotenv()  # Loads .env contents
@@ -131,6 +131,7 @@ def main() -> None:
         raise MissingTokenError(message)
 
     bot.run(token)
+
 
 if __name__ == "__main__":
     main()
