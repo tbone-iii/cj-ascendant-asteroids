@@ -1,7 +1,8 @@
-from discord import ButtonStyle, Interaction, ui
+from discord import ButtonStyle, Interaction
+from discord.ui import Button, View, button
 
 
-class ButtonView(ui.View):
+class ButtonView(View):
     """Creates a view subclass containing buttons and their callback functions.
 
     Note: Whenever this view is created, all of the buttons get created with it.
@@ -10,11 +11,11 @@ class ButtonView(ui.View):
 
     """
 
-    @ui.button(label="Button1", style=ButtonStyle.blurple)
+    @button(label="Button1", style=ButtonStyle.blurple)
     async def button_callback1(
         self,
         interaction: Interaction,
-        button: ui.Button,
+        button: Button,
     ) -> None:
         """Responds to button interaction.
 
@@ -23,11 +24,11 @@ class ButtonView(ui.View):
         button.disabled = True
         await interaction.response.edit_message(content="Button1 pressed!", view=self)
 
-    @ui.button(label="Button2", style=ButtonStyle.blurple)
+    @button(label="Button2", style=ButtonStyle.blurple)
     async def button_callback2(
         self,
         interaction: Interaction,
-        button: ui.Button,
+        button: Button,
     ) -> None:
         """Responds to button interaction.
 
@@ -36,11 +37,11 @@ class ButtonView(ui.View):
         button.disabled = True
         await interaction.response.edit_message(content="Button2 pressed!", view=self)
 
-    @ui.button(label="Button3", style=ButtonStyle.blurple)
+    @button(label="Button3", style=ButtonStyle.blurple)
     async def button_callback3(
         self,
         interaction: Interaction,
-        button: ui.Button,
+        button: Button,
     ) -> None:
         """Responds to button interaction.
 
@@ -49,11 +50,11 @@ class ButtonView(ui.View):
         button.disabled = True
         await interaction.response.edit_message(content="Button3 pressed!", view=self)
 
-    @ui.button(label="Button4", style=ButtonStyle.blurple)
+    @button(label="Button4", style=ButtonStyle.blurple)
     async def button_callback4(
         self,
         interaction: Interaction,
-        button: ui.Button,
+        button: Button,
     ) -> None:
         """Responds to button interaction.
 
