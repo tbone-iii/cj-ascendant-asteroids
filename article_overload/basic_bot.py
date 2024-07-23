@@ -1,13 +1,10 @@
 import os
-
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-
+from article_overload.button_views import ButtonView
+from article_overload.exceptions import MissingTokenError
 from article_overload.mention_target import MentionTarget
-
-from .button_views import ButtonView
-from .exceptions import MissingTokenError
 from utils.game_classes import Game, Player, Ability
 
 load_dotenv()  # Loads .env contents
@@ -32,8 +29,7 @@ class BasicBot(commands.Bot):
             intents = discord.Intents.default()
 
         super().__init__(command_prefix=command_prefix, intents=intents)
-        # Initialize the Discord Game
-        self.game = Game()
+        self.game = Game()  # Start the Discord Game
 
         @self.event
         async def on_ready() -> None:
@@ -109,12 +105,7 @@ class BasicBot(commands.Bot):
             self.game.start_game()
 
             # Create an embed to display the player details
-            embed = discord.Embed(title="The Article Overload Game!", color=discord.Color.green())
-            embed.add_field(name="Player ID", value=player.get_player_id(), inline=False)
-            embed.add_field(name="Display Name", value=player.get_display_name(), inline=False)
-            embed.add_field(name="Score", value=player.get_score(), inline=False)
-            embed.set_thumbnail(url=player.get_avatar_url())
-
+            embed = self.game.create_start_game_embed(player)
             await context.send(embed=embed)
 
         @self.command(name="end_game", description="Ends the game.")

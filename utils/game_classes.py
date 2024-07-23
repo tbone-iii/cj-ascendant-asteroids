@@ -1,26 +1,6 @@
-
+import discord
 import time
 
-class Ability:
-    def __init__(self, name, description, cooldown_time, effect):
-        self.name = name
-        self.description = description
-        self.cooldown_time = cooldown_time
-        self.effect = effect
-        self.last_used = 0
-
-    def activate(self, user, target):
-        if self.is_on_cooldown():
-            return False
-        self.effect(user, target)
-        self.last_used = time.time()
-        return True
-
-    def is_on_cooldown(self):
-        return time.time() - self.last_used < self.cooldown_time
-
-    def time_left(self):
-        return max(0, self.cooldown_time - (time.time() - self.last_used))
 
 class Player:
     def __init__(self, player_id, name, display_name, avatar_url):
@@ -55,6 +35,7 @@ class Player:
     def get_score(self):
         return self.score
 
+
 class Game:
     def __init__(self):
         self.players = []
@@ -75,10 +56,35 @@ class Game:
                 return player
         return None
 
-    def start_game_message(self, player):
-        return (f"=== Article Overload ===\n"
-                f"Player:\n"
-                f"{player.get_player_id()}\n"
-                f"{player.get_display_name()}\n"
-                f"{player.get_avatar_url()}\n"
-                f"Score: {player.get_score()}")
+    def create_start_game_embed(self, player):
+        embed = discord.Embed(
+            title="Welcome to Article Overload", color=discord.Color.green()
+        )
+        embed.add_field(name="Player ID", value=player.get_player_id(), inline=False)
+        embed.add_field(
+            name="Display Name", value=player.get_display_name(), inline=False
+        )
+        embed.add_field(name="Score", value=player.get_score(), inline=False)
+        embed.set_thumbnail(url=player.get_avatar_url())
+        return embed
+
+class Ability:
+    def __init__(self, name, description, cooldown_time, effect):
+        self.name = name
+        self.description = description
+        self.cooldown_time = cooldown_time
+        self.effect = effect
+        self.last_used = 0
+
+    def activate(self, user, target):
+        if self.is_on_cooldown():
+            return False
+        self.effect(user, target)
+        self.last_used = time.time()
+        return True
+
+    def is_on_cooldown(self):
+        return time.time() - self.last_used < self.cooldown_time
+
+    def time_left(self):
+        return max(0, self.cooldown_time - (time.time() - self.last_used))
