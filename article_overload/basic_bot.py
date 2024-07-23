@@ -37,18 +37,21 @@ class BasicBot(commands.Bot):
 
             :Return: None
             """
+            for guild in self.guilds:
+                self.tree.copy_global_to(guild=guild)
+                print(f"Commands synced: {len(await self.tree.sync(guild=guild))}")
             print(f"logged on as {self.user}")
 
-        @self.command()
-        async def ping(context: commands.Context) -> None:
+        @self.tree.command(name="ping")
+        async def ping(interaction: discord.Interaction) -> None:
             """Bot command.
 
             :Return: None
             """
-            await context.send("pong")
+            await interaction.response.send_message("pong")
 
-        @self.command()
-        async def create_embed(context: commands.Context) -> None:
+        @self.tree.command(name="create_embed")
+        async def create_embed(interaction: discord.Interaction) -> None:
             """Bot command.
 
             Description: Creates a basic discord.Embed
@@ -56,25 +59,25 @@ class BasicBot(commands.Bot):
             """
             embed = discord.Embed(title="This is an embed")
             embed.add_field(name="Field", value="field value")
-            await context.send(embed=embed)
+            await interaction.response.send_message(embed=embed)
 
-        @self.command(
+        @self.tree.command(
             name="create_button_example",
             description="Creates a view from ButtonViews containing buttons.",
         )
-        async def create_button(context: commands.Context) -> None:
+        async def create_button(interaction: discord.Interaction) -> None:
             """Bot command.
 
             Description: Creates a view from ButtonViews containing buttons
             :Return: None
             """
-            await context.send(view=ButtonView())
+            await interaction.response.send_message(view=ButtonView())
 
-        @self.command(
+        @self.tree.command(
             name="greet",
             description="Greets the server with the option to mention `everyone`.",
         )
-        async def greet(context: commands.Context, mention_target_string: str = "") -> None:
+        async def greet(interaction: discord.Interaction, mention_target_string: str = "") -> None:
             """Bot command.
 
             Description: Greets the server with the option to mention @everyone
@@ -83,11 +86,11 @@ class BasicBot(commands.Bot):
             try:
                 mention_target = MentionTarget(mention_target_string)
             except ValueError:
-                await context.send("Invalid mention target. Please try again.")
+                await interaction.response.send_message("Invalid mention target. Please try again.")
                 return
 
             mention_value = " @everyone" if mention_target == MentionTarget.EVERYONE else ""
-            await context.send(f"Greetings{mention_value}!")
+            await interaction.response.send_message(f"Greetings{mention_value}!")
 
         @self.command(name="article_overload", description="Starts the game.")
         async def article_overload(context: commands.Context) -> None:
