@@ -35,17 +35,6 @@ class BasicBot(commands.Bot):
         super().__init__(command_prefix=command_prefix, intents=intents)
         self.game = Game()  # Start the Discord Game
 
-        @self.event
-        async def on_ready() -> None:
-            """Bot event.
-
-            :Return: None
-            """
-            for guild in self.guilds:
-                self.tree.copy_global_to(guild=guild)
-                print(f"Commands synced: {len(await self.tree.sync(guild=guild))}")
-            print(f"logged on as {self.user}")
-
         @self.tree.command(name="ping")
         async def ping(interaction: discord.Interaction) -> None:
             """Bot command.
@@ -104,11 +93,12 @@ class BasicBot(commands.Bot):
             :Return: None
             """
             author = context.author
+            url = author.avatar.url if author.avatar else ""
             player = Player(
                 player_id=author.id,
                 name=author.name,
                 display_name=author.display_name,
-                avatar_url=author.avatar.url,
+                avatar_url=url,
             )
             self.game.add_player(player)
             self.game.start_game()
@@ -126,6 +116,16 @@ class BasicBot(commands.Bot):
             """
             self.game.end_game()
             await context.send("Game ended!")
+
+    async def on_ready(self) -> None:
+        """Bot event.
+
+        :Return: None
+        """
+        for guild in self.guilds:
+            self.tree.copy_global_to(guild=guild)
+            print(f"Commands synced: {len(await self.tree.sync(guild=guild))}")
+        print(f"logged on as {self.user}")
 
 
 def main() -> None:

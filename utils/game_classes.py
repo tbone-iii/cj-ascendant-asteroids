@@ -1,4 +1,6 @@
 import time
+from collections.abc import Callable
+from typing import Self
 
 import discord
 
@@ -40,7 +42,13 @@ class Player:
 
     """
 
-    def __init__(self, player_id: int, name: str, display_name: str, avatar_url: str) -> None:
+    def __init__(
+        self,
+        player_id: int,
+        name: str,
+        display_name: str,
+        avatar_url: str,
+    ) -> None:
         """Construct all the necessary attributes for the player object.
 
         Parameters
@@ -60,7 +68,7 @@ class Player:
         self.display_name = display_name
         self.avatar_url = avatar_url
         self.score = 0
-        self.abilities = []
+        self.abilities: list[Ability] = []
 
     def add_ability(self, ability: "Ability") -> None:
         """Add an ability to the player's list of abilities.
@@ -73,7 +81,7 @@ class Player:
         """
         self.abilities.append(ability)
 
-    def use_ability(self, ability_name: str, target: "Player") -> bool:
+    def use_ability(self, ability_name: str, target: Self) -> bool:
         """Use an ability on a target.
 
         Parameters
@@ -177,10 +185,10 @@ class Game:
 
     def __init__(self) -> None:
         """Construct all the necessary attributes for the game object."""
-        self.players = []
+        self.players: list[Player] = []
         self.state = "not_started"
 
-    def add_player(self, player: "Player") -> None:
+    def add_player(self, player: Player) -> None:
         """Add a player to the game.
 
         Parameters
@@ -199,7 +207,7 @@ class Game:
         """End the game by changing the state to 'ended'."""
         self.state = "ended"
 
-    def get_player(self, player_id: int) -> "Player":
+    def get_player(self, player_id: int) -> "Player | None":
         """Retrieve a player by their ID.
 
         Parameters
@@ -218,7 +226,7 @@ class Game:
                 return player
         return None
 
-    def create_start_game_embed(self, player: "Player") -> discord.Embed:
+    def create_start_game_embed(self, player: Player) -> discord.Embed:
         """Create a Discord embed for the start of the game.
 
         Parameters
@@ -274,7 +282,13 @@ class Ability:
 
     """
 
-    def __init__(self, name: str, description: str, cooldown_time: int, effect: callable) -> None:
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        cooldown_time: int,
+        effect: Callable,
+    ) -> None:
         """Construct all the necessary attributes for the ability object.
 
         Parameters
@@ -293,7 +307,7 @@ class Ability:
         self.description = description
         self.cooldown_time = cooldown_time
         self.effect = effect
-        self.last_used = 0
+        self.last_used: float = 0.0
 
     def activate(self, user: "Player", target: "Player") -> bool:
         """Activate the ability on a target.
