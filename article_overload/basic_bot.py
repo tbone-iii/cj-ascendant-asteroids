@@ -127,6 +127,7 @@ class BasicBot(commands.Bot):
             self.game.end_game()
             await context.send("Game ended!")
 
+
 def main() -> None:
     """Configure and run the bot."""
     bot = BasicBot(intents=intents)
@@ -137,7 +138,6 @@ def main() -> None:
         raise MissingTokenError(message)
 
     bot.run(token)
-
 
 
 if __name__ == "__main__":
