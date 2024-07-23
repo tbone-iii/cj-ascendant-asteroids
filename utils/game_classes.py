@@ -76,7 +76,7 @@ class Game:
         return None
 
     def start_game_message(self, player):
-        return (f"The Information Overload Game!\n"
+        return (f"=== Article Overload ===\n"
                 f"Player:\n"
                 f"{player.get_player_id()}\n"
                 f"{player.get_display_name()}\n"

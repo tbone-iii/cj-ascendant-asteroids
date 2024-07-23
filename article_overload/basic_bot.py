@@ -93,8 +93,8 @@ class BasicBot(commands.Bot):
             mention_value = " @everyone" if mention_target == MentionTarget.EVERYONE else ""
             await context.send(f"Greetings{mention_value}!")
 
-        @self.command(name="start_game", description="Starts the game.")
-        async def start_game(context: commands.Context) -> None:
+        @self.command(name="article_overload", description="Starts the game.")
+        async def article_overload(context: commands.Context) -> None:
             """Bot command.
 
             Description: Starts the game
@@ -109,7 +109,7 @@ class BasicBot(commands.Bot):
             self.game.start_game()
 
             # Create an embed to display the player details
-            embed = discord.Embed(title="The Information Overload Game!", color=discord.Color.green())
+            embed = discord.Embed(title="The Article Overload Game!", color=discord.Color.green())
             embed.add_field(name="Player ID", value=player.get_player_id(), inline=False)
             embed.add_field(name="Display Name", value=player.get_display_name(), inline=False)
             embed.add_field(name="Score", value=player.get_score(), inline=False)
