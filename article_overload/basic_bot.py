@@ -16,6 +16,7 @@ load_dotenv()  # Loads .env contents
 intents = discord.Intents.default()
 intents.message_content = True
 
+
 class BasicBot(commands.Bot):
     """Basic bot class."""
 
@@ -136,6 +137,7 @@ def main() -> None:
         raise MissingTokenError(message)
 
     bot.run(token)
+
 
 
 if __name__ == "__main__":
