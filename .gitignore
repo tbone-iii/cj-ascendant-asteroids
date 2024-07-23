@@ -29,3 +29,7 @@ build/
 .vscode/
 # MacOS
 .DS_Store
+
+# Test output database files
+./tests/*.db
+./tests/output/*.db
