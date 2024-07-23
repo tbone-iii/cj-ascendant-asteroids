@@ -3,6 +3,7 @@ import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from utils.game_classes import Game, Player
 
 from article_overload.mention_target import MentionTarget
 
@@ -32,17 +33,7 @@ class BasicBot(commands.Bot):
             intents = discord.Intents.default()
 
         super().__init__(command_prefix=command_prefix, intents=intents)
-
-        @self.event
-        async def on_ready() -> None:
-            """Bot event.
-
-            :Return: None
-            """
-            for guild in self.guilds:
-                self.tree.copy_global_to(guild=guild)
-                print(f"Commands synced: {len(await self.tree.sync(guild=guild))}")
-            print(f"logged on as {self.user}")
+        self.game = Game()  # Start the Discord Game
 
         @self.tree.command(name="ping")
         async def ping(interaction: discord.Interaction) -> None:
@@ -93,6 +84,48 @@ class BasicBot(commands.Bot):
 
             mention_value = " @everyone" if mention_target == MentionTarget.EVERYONE else ""
             await interaction.response.send_message(f"Greetings{mention_value}!")
+
+        @self.command(name="article_overload", description="Starts the game.")
+        async def article_overload(context: commands.Context) -> None:
+            """Bot command.
+
+            Description: Starts the game
+            :Return: None
+            """
+            author = context.author
+            url = author.avatar.url if author.avatar else ""
+            player = Player(
+                player_id=author.id,
+                name=author.name,
+                display_name=author.display_name,
+                avatar_url=url,
+            )
+            self.game.add_player(player)
+            self.game.start_game()
+
+            # Create an embed to display the player details
+            embed = self.game.create_start_game_embed(player)
+            await context.send(embed=embed)
+
+        @self.command(name="end_game", description="Ends the game.")
+        async def end_game(context: commands.Context) -> None:
+            """Bot command.
+
+            Description: Ends the game
+            :Return: None
+            """
+            self.game.end_game()
+            await context.send("Game ended!")
+
+    async def on_ready(self) -> None:
+        """Bot event.
+
+        :Return: None
+        """
+        for guild in self.guilds:
+            self.tree.copy_global_to(guild=guild)
+            print(f"Commands synced: {len(await self.tree.sync(guild=guild))}")
+        print(f"logged on as {self.user}")
 
 
 def main() -> None:
