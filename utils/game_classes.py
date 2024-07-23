@@ -1,9 +1,10 @@
 import time
+
 import discord
 
+
 class Player:
-    """
-    A class to represent a player in the game.
+    """A class to represent a player in the game.
 
     Attributes
     ----------
@@ -36,11 +37,11 @@ class Player:
         Returns the player's ID.
     get_score():
         Returns the player's score.
+
     """
 
     def __init__(self, player_id, name, display_name, avatar_url):
-        """
-        Constructs all the necessary attributes for the player object.
+        """Constructs all the necessary attributes for the player object.
 
         Parameters
         ----------
@@ -52,6 +53,7 @@ class Player:
             The display name of the player.
         avatar_url : str
             The URL of the player's avatar.
+
         """
         self.player_id = player_id
         self.name = name
@@ -61,19 +63,18 @@ class Player:
         self.abilities = []
 
     def add_ability(self, ability):
-        """
-        Adds an ability to the player's list of abilities.
+        """Adds an ability to the player's list of abilities.
 
         Parameters
         ----------
         ability : Ability
             The ability to be added.
+
         """
         self.abilities.append(ability)
 
     def use_ability(self, ability_name, target):
-        """
-        Uses an ability on a target.
+        """Uses an ability on a target.
 
         Parameters
         ----------
@@ -86,6 +87,7 @@ class Player:
         -------
         bool
             True if the ability was successfully used, False otherwise.
+
         """
         for ability in self.abilities:
             if ability.name == ability_name:
@@ -93,64 +95,63 @@ class Player:
         return False
 
     def update_score(self, points):
-        """
-        Updates the player's score.
+        """Updates the player's score.
 
         Parameters
         ----------
         points : int
             The points to be added to the player's score.
+
         """
         self.score += points
 
     def get_display_name(self):
-        """
-        Returns the player's display name.
+        """Returns the player's display name.
 
         Returns
         -------
         str
             The display name of the player.
+
         """
         return self.display_name
 
     def get_avatar_url(self):
-        """
-        Returns the player's avatar URL.
+        """Returns the player's avatar URL.
 
         Returns
         -------
         str
             The URL of the player's avatar.
+
         """
         return self.avatar_url
 
     def get_player_id(self):
-        """
-        Returns the player's ID.
+        """Returns the player's ID.
 
         Returns
         -------
         int
             The unique ID of the player.
+
         """
         return self.player_id
 
     def get_score(self):
-        """
-        Returns the player's score.
+        """Returns the player's score.
 
         Returns
         -------
         int
             The score of the player.
+
         """
         return self.score
 
 
 class Game:
-    """
-    A class to represent the game.
+    """A class to represent the game.
 
     Attributes
     ----------
@@ -171,41 +172,38 @@ class Game:
         Retrieves a player by their ID.
     create_start_game_embed(player):
         Creates a Discord embed for the start of the game.
+
     """
 
     def __init__(self):
-        """
-        Constructs all the necessary attributes for the game object.
+        """Constructs all the necessary attributes for the game object.
         """
         self.players = []
         self.state = "not_started"
 
     def add_player(self, player):
-        """
-        Adds a player to the game.
+        """Adds a player to the game.
 
         Parameters
         ----------
         player : Player
             The player to be added to the game.
+
         """
         self.players.append(player)
 
     def start_game(self):
-        """
-        Starts the game by changing the state to 'in_progress'.
+        """Starts the game by changing the state to 'in_progress'.
         """
         self.state = "in_progress"
 
     def end_game(self):
-        """
-        Ends the game by changing the state to 'ended'.
+        """Ends the game by changing the state to 'ended'.
         """
         self.state = "ended"
 
     def get_player(self, player_id):
-        """
-        Retrieves a player by their ID.
+        """Retrieves a player by their ID.
 
         Parameters
         ----------
@@ -216,6 +214,7 @@ class Game:
         -------
         Player
             The player with the specified ID, or None if no player with the ID is found.
+
         """
         for player in self.players:
             if player.player_id == player_id:
@@ -223,8 +222,7 @@ class Game:
         return None
 
     def create_start_game_embed(self, player):
-        """
-        Creates a Discord embed for the start of the game.
+        """Creates a Discord embed for the start of the game.
 
         Parameters
         ----------
@@ -235,6 +233,7 @@ class Game:
         -------
         discord.Embed
             A Discord embed object containing the player's details.
+
         """
         embed = discord.Embed(
             title="Welcome to Article Overload", color=discord.Color.green(),
@@ -249,8 +248,7 @@ class Game:
 
 
 class Ability:
-    """
-    A class to represent an ability.
+    """A class to represent an ability.
 
     Attributes
     ----------
@@ -273,11 +271,11 @@ class Ability:
         Checks if the ability is on cooldown.
     time_left():
         Returns the remaining cooldown time for the ability.
+
     """
 
     def __init__(self, name, description, cooldown_time, effect):
-        """
-        Constructs all the necessary attributes for the ability object.
+        """Constructs all the necessary attributes for the ability object.
 
         Parameters
         ----------
@@ -289,6 +287,7 @@ class Ability:
             The cooldown time for the ability in seconds.
         effect : function
             The function that defines the ability's effect.
+
         """
         self.name = name
         self.description = description
@@ -297,8 +296,7 @@ class Ability:
         self.last_used = 0
 
     def activate(self, user, target):
-        """
-        Activates the ability on a target.
+        """Activates the ability on a target.
 
         Parameters
         ----------
@@ -311,6 +309,7 @@ class Ability:
         -------
         bool
             True if the ability was successfully activated, False otherwise.
+
         """
         if self.is_on_cooldown():
             return False
@@ -319,23 +318,23 @@ class Ability:
         return True
 
     def is_on_cooldown(self):
-        """
-        Checks if the ability is on cooldown.
+        """Checks if the ability is on cooldown.
 
         Returns
         -------
         bool
             True if the ability is on cooldown, False otherwise.
+
         """
         return time.time() - self.last_used < self.cooldown_time
 
     def time_left(self):
-        """
-        Returns the remaining cooldown time for the ability.
+        """Returns the remaining cooldown time for the ability.
 
         Returns
         -------
         float
             The remaining cooldown time in seconds.
+
         """
         return max(0, self.cooldown_time - (time.time() - self.last_used))
