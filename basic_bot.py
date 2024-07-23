@@ -6,13 +6,13 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from exceptions import MissingTokenError
 from mention_target import MentionTarget
+from utils.game_classes import Game, Player, Ability
 
 load_dotenv()  # Loads .env contents
 
 # Configure base bot intents with message content enabled
 intents = discord.Intents.default()
 intents.message_content = True
-
 
 class BasicBot(commands.Bot):
     """Basic bot class."""
@@ -30,6 +30,8 @@ class BasicBot(commands.Bot):
             intents = discord.Intents.default()
 
         super().__init__(command_prefix=command_prefix, intents=intents)
+        # Initialize the Discord Game
+        self.game = Game()
 
         @self.event
         async def on_ready() -> None:
@@ -83,6 +85,39 @@ class BasicBot(commands.Bot):
             mention_value = " @everyone" if mention_target == MentionTarget.EVERYONE else ""
             await context.send(f"Greetings{mention_value}!")
 
+        @self.command(name="start_game", description="Starts the game.")
+        async def start_game(context: commands.Context) -> None:
+            """Bot command.
+
+            Description: Starts the game
+            :Return: None
+            """
+            author = context.author
+            player = Player(player_id=author.id,
+                            name=author.name,
+                            display_name=author.display_name,
+                            avatar_url=author.avatar.url)
+            self.game.add_player(player)
+            self.game.start_game()
+
+            # Create an embed to display the player details
+            embed = discord.Embed(title="The Information Overload Game!", color=discord.Color.green())
+            embed.add_field(name="Player ID", value=player.get_player_id(), inline=False)
+            embed.add_field(name="Display Name", value=player.get_display_name(), inline=False)
+            embed.add_field(name="Score", value=player.get_score(), inline=False)
+            embed.set_thumbnail(url=player.get_avatar_url())
+
+            await context.send(embed=embed)
+
+        @self.command(name="end_game", description="Ends the game.")
+        async def end_game(context: commands.Context) -> None:
+            """Bot command.
+
+            Description: Ends the game
+            :Return: None
+            """
+            self.game.end_game()
+            await context.send("Game ended!")
 
 def main() -> None:
     """Configure and run the bot."""
@@ -94,7 +129,6 @@ def main() -> None:
         raise MissingTokenError(message)
 
     bot.run(token)
-
 
 if __name__ == "__main__":
     main()
