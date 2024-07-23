@@ -1,5 +1,5 @@
 from discord import Button, ButtonStyle, Interaction
-from discord.ui import button, View
+from discord.ui import View, button
 
 
 class ButtonView(View):

@@ -1,32 +1,55 @@
 from discord import Button, ButtonStyle, Interaction, SelectOption
-from discord.ui import button, Select, View
+from discord.ui import Select, View, button
 
 
 class PaginationSelect(Select):
-    def __init__(self, data: list, full_data: list, page: int = 0):
+    """Pagination select menu class."""
+
+    def __init__(self, data: list, full_data: list, page: int = 0) -> None:
+        """Subclass of Select.
+
+        Description: Initializes a subclass of a Select menu to allow for easy pagination.
+        :Return: None
+        """
         super().__init__(
             options=[
                 SelectOption(
-                    label=i["title"], description=i["description"], value=i["num"]
+                    label=i["title"],
+                    description=i["description"],
+                    value=i["num"],
                 )
                 for i in data
-            ]
+            ],
         )
 
         self.full_data = full_data
         self.page = page
 
-    async def callback(self, interaction: Interaction):
+    async def callback(self, interaction: Interaction) -> None:
+        """Select callback.
+
+        Description: Callback for checking if a value was selected.
+        :Return: None
+        """
         await interaction.edit(
             embed=self.full_data[int(self.values[0]) - 1]["embed"],
             view=PaginationView(
-                interaction.user.id, self.full_data, page=int(self.values[0]) - 1
+                interaction.user.id,
+                self.full_data,
+                page=int(self.values[0]) - 1,
             ),
         )
 
 
 class PaginationView(View):
-    def __init__(self, org_user: int, data: list, page: int):
+    """Pagination view class."""
+
+    def __init__(self, org_user: int, data: list, page: int) -> None:
+        """Subclass of View.
+
+        Description: Initializes View subclass to create a pagination system.
+        :Return: None
+        """
         super().__init__(timeout=600)
 
         self.org_user = org_user
@@ -39,23 +62,49 @@ class PaginationView(View):
             self.add_item(PaginationSelect(data[i : i + 25], self.data, page))
 
     @button(emoji="<:left_arrow:1049429857488093275>", style=ButtonStyle.blurple)
-    async def left_arrow(self, button: Button, interaction: Interaction):
+    async def left_arrow(
+        self,
+        button: Button,
+        interaction: Interaction,
+    ) -> None:
+        """Left button.
+
+        Description: Moves page selection to the left.
+        :Return: None
+        """
         self.page -= 1 if self.page > 0 else 0
         await self.update_page(interaction)
-        return
 
     @button(emoji="<:right_arrow:1049430086257999882>", style=ButtonStyle.blurple)
-    async def right_arrow(self, button: Button, interaction: Interaction):
+    async def right_arrow(
+        self,
+        button: Button,
+        interaction: Interaction,
+    ) -> None:
+        """Right button.
+
+        Description: Moves page selection to the right.
+        :Return: None
+        """
         self.page += 1 if self.page < len(self.data) - 1 else 0
         await self.update_page(interaction)
-        return
 
-    async def update_page(self, interaction: Interaction):
+    async def update_page(self, interaction: Interaction) -> None:
+        """Update page.
+
+        Description: Callback to update embed and page content.
+        :Return: None
+        """
         await interaction.edit(embed=self.data[self.page]["embed"])
 
-    async def interaction_check(self, interaction: Interaction):
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        """Interaction check callback.
+
+        Description: Callback for checking if an interaction is valid and the correct user is responding.
+        :Return: Boolean
+        """
         if interaction.user.id != self.org_user:
             await interaction.send("You can't click this!", ephemeral=True)
-            return
+            return None
 
         return True

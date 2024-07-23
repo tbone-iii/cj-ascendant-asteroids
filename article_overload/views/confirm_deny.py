@@ -1,9 +1,16 @@
 from discord import Button, ButtonStyle, Interaction
-from discord.ui import button, View
+from discord.ui import View, button
 
 
 class ConfirmDeny(View):
-    def __init__(self, org_user: int):
+    """Confirm/Deny view class."""
+
+    def __init__(self, org_user: int) -> None:
+        """Subclass of View.
+
+        Description: Initializes View subclass that will enable a user to respond with a confirmation or denial.
+        :Return: None
+        """
         super().__init__()
         self.value = None
         self.org_user = org_user
@@ -13,25 +20,53 @@ class ConfirmDeny(View):
         emoji="<:Check:779247977721495573>",
         style=ButtonStyle.green,
     )
-    async def confirm(self, button: Button, interaction: Interaction):
+    async def confirm(
+        self,
+        button: Button,
+        interaction: Interaction,
+    ) -> None:
+        """Confirm button.
+
+        Description: Button to confirm.
+        :Return: None
+        """
         self.value = True
         self.stop()
 
         self.clear_items()
 
     @button(label="No", emoji="<:Cross:779247977843523594>", style=ButtonStyle.red)
-    async def deny(self, button: Button, interaction: Interaction):
+    async def deny(
+        self,
+        button: Button,
+        interaction: Interaction,
+    ) -> None:
+        """Deny button.
+
+        Description: Button to deny.
+        :Return: None
+        """
         self.value = False
         self.stop()
 
         self.clear_items()
 
-    async def interaction_check(self, interaction: Interaction):
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        """Interaction check callback.
+
+        Description: Callback for checking if an interaction is valid and the correct user is responding.
+        :Return: Boolean
+        """
         if interaction.user.id != self.org_user:
             await interaction.send("You can't click this!", ephemeral=True)
             return False
 
         return True
 
-    async def on_timeout(self):
+    async def on_timeout(self) -> None:
+        """Timeout callback
+
+        Description: Callback for checking if the view has reached its timeout.
+        :Return: None
+        """
         self.stop()

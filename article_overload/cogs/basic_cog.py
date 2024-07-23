@@ -1,19 +1,28 @@
+from discord import Embed, Interaction, app_commands
 from discord.ext import commands
-from discord import app_commands, Embed, Interaction
-from ..mention_target import MentionTarget
-from ..bot import ArticleOverloadBot
-from ..tools.desc import COMMAND_DESC
-from ..views import ButtonView
+
+from article_overload.bot import ArticleOverloadBot
+from article_overload.mention_target import MentionTarget
+from article_overload.tools.desc import COMMAND_DESC
+from article_overload.views import ButtonView
 
 
 class Basic(commands.Cog):
-    def __init__(self, client: ArticleOverloadBot):
+    """Basic cog class."""
+
+    def __init__(self, client: ArticleOverloadBot) -> None:
+        """Initialize method.
+
+        Description Initialize commands.Cog subclass.
+        :Return: None
+        """
         self.client = client
 
     @app_commands.command(name="ping", description=COMMAND_DESC["ping"])
     async def ping(self, interaction: Interaction) -> None:
         """Bot command.
 
+        Description: Returns pong
         :Return: None
         """
         await interaction.response.send_message("pong")
@@ -46,7 +55,9 @@ class Basic(commands.Cog):
         description=COMMAND_DESC["greet"],
     )
     async def greet(
-        self, interaction: Interaction, mention_target_string: str = ""
+        self,
+        interaction: Interaction,
+        mention_target_string: str = "",
     ) -> None:
         """Bot command.
 
@@ -57,7 +68,7 @@ class Basic(commands.Cog):
             mention_target = MentionTarget(mention_target_string)
         except ValueError:
             await interaction.response.send_message(
-                "Invalid mention target. Please try again."
+                "Invalid mention target. Please try again.",
             )
             return
 
@@ -65,5 +76,10 @@ class Basic(commands.Cog):
         await interaction.response.send_message(f"Greetings{mention_value}!")
 
 
-async def setup(client: ArticleOverloadBot):
+async def setup(client: ArticleOverloadBot) -> None:
+    """Sets up command.
+
+    Description: Sets up the Basic Cog
+    :Return: None
+    """
     await client.add_cog(Basic(client))
