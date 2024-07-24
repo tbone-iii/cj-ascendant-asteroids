@@ -2,8 +2,6 @@ from typing import TypeVar
 
 from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import Session
-
 from tools.utils import color_message
 
 from .models import ArticleRecord, init_database
@@ -87,30 +85,3 @@ class DatabaseHandler:
                 Article.from_dict(article_record_row.ArticleRecord.__dict__)
                 for article_record_row in article_record_rows
             ]
-
-    def update_article(
-        self,
-        session: Session,
-        article_id: int,
-        article: Article,
-    ) -> None:
-        """Update article by ID.
-
-        :Return: `None`
-        """
-        query = session.query(ArticleRecord)
-        article_record = query.filter(ArticleRecord.id == article_id).first()
-
-        if article_record is None:
-            print(
-                color_message(
-                    message=f"Warning: Article ID '{article_id}' not found. Skipping update.",
-                    color="yellow",
-                ),
-            )
-            return
-
-        for key, value in article.get_dict().items():
-            setattr(article, key, value)
-
-        session.commit()
