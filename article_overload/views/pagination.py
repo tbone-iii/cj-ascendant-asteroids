@@ -1,3 +1,5 @@
+from itertools import islice
+
 from discord import ButtonStyle, Interaction, SelectOption
 from discord.ui import Button, Select, View, button
 
@@ -58,8 +60,7 @@ class PaginationView(View):
         self.data = data
         self.page = page
 
-        # TODO: Use itertools
-        for i in range(0, len(data), self.PAGE_SIZE):
+        for i in islice(data, 0, len(data), self.PAGE_SIZE):
             self.add_item(
                 PaginationSelect(data[i : i + self.PAGE_SIZE], self.data, page),
             )
