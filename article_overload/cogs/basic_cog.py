@@ -5,7 +5,9 @@ from utils.game_classes import Game, Player
 from article_overload.bot import ArticleOverloadBot
 from article_overload.mention_target import MentionTarget
 from article_overload.tools.desc import COMMAND_DESC
-from article_overload.views import ButtonView
+from article_overload.tools.utils import create_success_embed, create_warning_embed
+from article_overload.views import ButtonView, ConfirmDeny, InputButton
+from article_overload.views.confirm_deny import ConfirmDenyOptions
 
 
 class Basic(commands.Cog):
@@ -76,6 +78,94 @@ class Basic(commands.Cog):
 
         mention_value = " @everyone" if mention_target == MentionTarget.EVERYONE else ""
         await interaction.response.send_message(f"Greetings{mention_value}!")
+
+    @app_commands.command(name="confirm_deny", description=COMMAND_DESC["confirm_deny"])
+    async def confirm_deny(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Shows a confirmation message with options to confirm or deny
+        :Return: None
+        """
+        # TODO: Figure out why user gets interaction failed even
+        # if there is no error and everything passes successfully
+        view = ConfirmDeny(org_user=interaction.user.id)
+        await interaction.response.send_message(
+            embed=create_warning_embed(
+                title="Are you sure?",
+                description="Do you want to confirm?",
+            ),
+            view=view,
+        )
+        await view.wait()
+
+        if view.value == ConfirmDenyOptions.YES:
+            await interaction.edit_original_response(
+                embed=create_success_embed(
+                    title="Success!",
+                    description="You have confirmed that you want to donate your life savings to the \
+                        Ascendant Asteroid group!",
+                ),
+                view=None,
+            )
+
+        elif view.value == ConfirmDenyOptions.NO:
+            await interaction.edit_original_response(
+                embed=create_success_embed(
+                    title="Operation Canceled",
+                    description="You have declined the offer to donate to the Ascendant Asteroid group",
+                ),
+                view=None,
+            )
+
+        elif view.value == ConfirmDenyOptions.EXPIRED:
+            await interaction.edit_original_response(
+                embed=create_warning_embed(
+                    title="Too Late!",
+                    description="Your chance to donate your life savings to the \
+                        Ascendant Asteroid group has expired! Better luck next time!",
+                ),
+                view=None,
+            )
+
+    @app_commands.command(name="user_input", description=COMMAND_DESC["user_input"])
+    async def user_input(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Collects input from the user and stores it to be processed
+        :Return: None
+        """
+        # TODO: Figure out why user gets interaction failed even
+        # if there is no error and everything passes successfully
+        view = InputButton(
+            title="Ascendant Asteroid #1",
+            message="Will Ascendant Asteroid win the Code Jam?",
+            org_user=interaction.user.id,
+        )
+        embed = Embed(
+            title="Important Question",
+            description="Please press the button below to answer a short question",
+        )
+        await interaction.response.send_message(embed=embed, view=view)
+        await view.wait()
+
+        if view.response is None:
+            await interaction.edit_original_response(
+                embed=create_warning_embed(
+                    title="Expired!",
+                    description="Your chance to praise the Ascendant Asteroids has expired. Please try again later",
+                ),
+                view=None,
+            )
+
+        else:
+            await interaction.edit_original_response(
+                embed=create_success_embed(
+                    title="Success!",
+                    description=f"Your thoughtful response has been recorded! \
+                        You submitted the following text:\n**{view.response}**",
+                ),
+                view=None,
+            )
 
     @app_commands.command(
         name="article_overload",
