@@ -210,3 +210,13 @@ async def test_get_article_by_id_from_sample_db(
     retrieved_article = await database_handler.get_article_by_id(article.id)
 
     assert retrieved_article == article
+
+
+@pytest.mark.asyncio()
+async def test_get_all_articles_from_sample_db(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+    retrieved_articles = await database_handler.get_all_articles()
+
+    assert retrieved_articles == sample_articles

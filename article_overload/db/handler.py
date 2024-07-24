@@ -70,13 +70,21 @@ class DatabaseHandler:
             article_record = result.scalars().first()
             return Article.from_dict(article_record.__dict__) if article_record else None
 
-    def get_all_articles(self, session: Session) -> list[Article]:
+    async def get_all_articles(self) -> list[Article]:
         """Get all articles.
+
+        :See:
+        https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Row
 
         :Return: `list[Article]`
         """
-        article_records = session.query(ArticleRecord).all()
-        return [Article(**article_record.__dict__) for article_record in article_records]
+        async with self.session_factory() as session:
+            result = await session.execute(select(ArticleRecord))
+            article_record_rows = result.all()
+            return [
+                Article.from_dict(article_record_row.ArticleRecord.__dict__)
+                for article_record_row in article_record_rows
+            ]
 
     def update_article(self, session: Session, article_id: int, article: Article) -> None:
         """Update article by ID.
