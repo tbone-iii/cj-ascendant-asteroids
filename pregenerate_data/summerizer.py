@@ -2,6 +2,7 @@ import os
 import json
 import random
 import sys
+from pathlib import Path
 
 import openai
 import feedparser
@@ -11,6 +12,8 @@ openai.api_key = sys.argv[1]
 GPT_MODEL = "gpt-4"
 NEWS_API_KEY="589889c3716740ca8fc4c9c6413bac96"
 NEWS_SITE_RSS_URL = "https://finance.yahoo.com/rss/"
+
+JSON_LOCATION = Path(__file__).resolve().parent / 'articles.json'
 
 INPUT_ARTICLE = r"""Breaking Down the Trump Family Tree
 5 minute read
@@ -171,7 +174,7 @@ Author: {self.author}
             "author": self.author
         })
 
-        with open('articles.json', 'w') as f:
+        with open(JSON_LOCATION, 'w') as f:
             json.dump(articles, f)
 
     @staticmethod
@@ -179,7 +182,7 @@ Author: {self.author}
         '''Collects all articles jsons from file'''
 
         articles = []
-        with open('articles.json') as f:
+        with open(JSON_LOCATION) as f:
             data = json.load(f)
             for article in data:
                 articles.append(article)
