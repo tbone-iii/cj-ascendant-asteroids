@@ -6,6 +6,7 @@ COMMAND_DESC = {
     "confirm_deny": "Sends an embed containing a confirm/deny view",
     "user_input": "Gets input from a user",
     "select_stuff": "Enables user to select from select menu",
+    "pagination": "Flip through pages",
     "game_start": "Starts the game.",
     "game_end": "Ends the game.",
 }

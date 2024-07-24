@@ -1,8 +1,6 @@
 from discord import ButtonStyle, Interaction, SelectOption
 from discord.ui import Button, Select, View, button
 
-from article_overload.exceptions import ViewDoesNotExistError
-
 
 class SelectOptions(Select):
     """Select menus class."""
@@ -11,8 +9,6 @@ class SelectOptions(Select):
         self,
         option_titles: list,
         option_values: list,
-        min_val: int = 1,
-        max_val: int = 1,
     ) -> None:
         """Subclass of Select.
 
@@ -30,24 +26,23 @@ class SelectOptions(Select):
                 )
                 for i in range(len(option_titles))
             ],
-            min_values=min_val,
-            max_values=max_val,
+            min_values=0,
+            max_values=25,
         )
 
-    async def callback(self, _: Interaction) -> None:
+    async def callback(self, interaction: Interaction) -> None:
         """Select callback.
 
         Description: Callback for checking if a value was selected.
         :Return: None
         """
-        if self.view is None:  # TODO: Needs review as to what view is here
-            raise ViewDoesNotExistError
-
-        self.view.clicked.extend(self.values)
+        await interaction.response.defer()
 
 
 class SelectOptionsView(View):
     """Select menu view class."""
+
+    MAX_OPTIONS_PER_SELECT = 25
 
     def __init__(
         self,
@@ -64,23 +59,21 @@ class SelectOptionsView(View):
         super().__init__(timeout=600)
 
         self.org_user = org_user
-        self.clicked: list = []  # TODO: specify the list element type
+        self.clicked: list[str] = []
         self.min_val, self.max_val = value_range
 
-        for i in range(0, len(option_titles), 25):
+        for i in range(0, len(option_titles), self.MAX_OPTIONS_PER_SELECT):
             self.add_item(
                 SelectOptions(
-                    option_titles[i : i + 25],
-                    option_values[i : i + 25],
-                    self.min_val,
-                    self.max_val,
+                    option_titles[i : i + self.MAX_OPTIONS_PER_SELECT],
+                    option_values[i : i + self.MAX_OPTIONS_PER_SELECT],
                 ),
             )
 
     @button(label="Complete", style=ButtonStyle.green, row=4)
     async def submit(
         self,
-        interaction: Interaction,
+        _: Interaction,
         __: Button,
     ) -> None:
         """Complete button.
@@ -88,7 +81,12 @@ class SelectOptionsView(View):
         Description: Callback to check if a user has pressed submit to stop selection.
         :Return: None
         """
-        await interaction.response.defer()
+        self.clicked = [
+            value
+            for component in self.children
+            if isinstance(component, SelectOptions)
+            for value in component.values  # noqa: PD011
+        ]
 
         self.stop()
 
@@ -105,9 +103,25 @@ class SelectOptionsView(View):
             )
             return False
 
-        if len(self.clicked) == self.max_val:
+        self.clicked = [
+            value
+            for component in self.children
+            if isinstance(component, SelectOptions)
+            for value in component.values  # noqa: PD011
+        ]
+
+        if len(self.clicked) < self.min_val:
             await interaction.response.send_message(
-                f"Maximum selections is {self.max_val}!",
+                f"Minimum selections is **{self.min_val}**! You have selected `{len(self.clicked)}` options",
+                ephemeral=True,
+            )
+
+            return False
+
+        if len(self.clicked) > self.max_val:
+            await interaction.response.send_message(
+                f"Maximum selections is **{self.max_val}**! You have selected `{len(self.clicked)}` options",
+                ephemeral=True,
             )
             return False
 

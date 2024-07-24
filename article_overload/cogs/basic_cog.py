@@ -5,7 +5,7 @@ from article_overload.bot import ArticleOverloadBot
 from article_overload.mention_target import MentionTarget
 from article_overload.tools.desc import COMMAND_DESC
 from article_overload.tools.utils import create_success_embed, create_warning_embed
-from article_overload.views import ButtonView, ConfirmDeny, InputButton, SelectOptionsView
+from article_overload.views import ButtonView, ConfirmDeny, InputButton, PaginationView, SelectOptionsView
 from article_overload.views.confirm_deny import ConfirmDenyOptions
 
 
@@ -175,13 +175,37 @@ class Sample(commands.Cog):
 
         view = SelectOptionsView(
             interaction.user.id,
-            [str(i) + str(i) for i in range(10)],
-            [str(i) for i in range(10)],
+            [str(i) + str(i) for i in range(100)],
+            [str(i) for i in range(100)],
         )
         await interaction.followup.send(content="Select", view=view)
         await view.wait()
 
-        await interaction.edit_original_response(content="You selected:\n" + "\n".join(view.clicked))
+        await interaction.edit_original_response(content="You selected:\n" + "\n".join(view.clicked), view=None)
+
+    @app_commands.command(name="pagination", description=COMMAND_DESC["pagination"])
+    async def pagination(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Enables user to page through items in embeds
+        :Return: None
+        """
+        await interaction.response.defer()
+
+        view = PaginationView(
+            interaction.user.id,
+            [
+                {
+                    "embed": Embed(title=str(i) * 5, description=str(i) * 3),
+                    "title": str(i),
+                    "description": str(i) * 2,
+                    "num": i + 1,
+                }
+                for i in range(100)
+            ],
+        )
+        await interaction.followup.send(embed=Embed(title="Page through stuff"), view=view)
+        await view.wait()
 
 
 async def setup(client: ArticleOverloadBot) -> None:

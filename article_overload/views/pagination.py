@@ -1,5 +1,3 @@
-from itertools import islice
-
 from discord import ButtonStyle, Interaction, SelectOption
 from discord.ui import Button, Select, View, button
 
@@ -48,7 +46,7 @@ class PaginationView(View):
 
     PAGE_SIZE = 25
 
-    def __init__(self, org_user: int, data: list, page: int) -> None:
+    def __init__(self, org_user: int, data: list, page: int = 0) -> None:
         """Subclass of View.
 
         Description: Initializes View subclass to create a pagination system.
@@ -60,7 +58,7 @@ class PaginationView(View):
         self.data = data
         self.page = page
 
-        for i in islice(data, 0, len(data), self.PAGE_SIZE):
+        for i in range(0, len(data), self.PAGE_SIZE):
             self.add_item(
                 PaginationSelect(data[i : i + self.PAGE_SIZE], self.data, page),
             )
