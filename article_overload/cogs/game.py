@@ -1,4 +1,3 @@
-from typing import Dict
 from discord import Interaction, app_commands
 from discord.ext import commands
 from utils.game_classes import Game, Player
@@ -11,14 +10,14 @@ from article_overload.tools.utils import create_warning_embed
 class ArticleOverload(commands.Cog):
     """ArticleOverload cog class."""
 
-    def __init__(self, client: ArticleOverloadBot):
+    def __init__(self, client: ArticleOverloadBot) -> None:
         """Initialize method.
 
         Description: Initialize ArticleOverload cog as a subclass of commands.Cog
         :Return: None
         """
         self.client = client
-        self.games: Dict[int, Game] = {}
+        self.games: dict[int, Game] = {}
 
     @app_commands.command(
         name="article_overload",
@@ -33,8 +32,9 @@ class ArticleOverload(commands.Cog):
         if interaction.user.id in self.games:
             return await interaction.response.send_message(
                 embed=create_warning_embed(
-                    title="Already In Game!", description="You are already in a game!"
-                )
+                    title="Already In Game!",
+                    description="You are already in a game!",
+                ),
             )
 
         game = Game()
@@ -53,7 +53,7 @@ class ArticleOverload(commands.Cog):
 
         # Create an embed to display the player details
         embed = game.create_start_game_embed(player)
-        await interaction.response.send_message(embed=embed)
+        return await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="end_game", description=COMMAND_DESC["game_end"])
     async def end_game(self, interaction: Interaction) -> None:
@@ -65,14 +65,20 @@ class ArticleOverload(commands.Cog):
         game = self.games.get(interaction.user.id, None)
         if game is None:
             return await create_warning_embed(
-                title="Not In Game!", description="You are not in a game!"
+                title="Not In Game!",
+                description="You are not in a game!",
             )
 
         game.end_game()
         self.games.pop(interaction.user.id)
 
-        await interaction.response.send_message("Game ended!")
+        return await interaction.response.send_message("Game ended!")
 
 
-async def setup(client: ArticleOverloadBot):
+async def setup(client: ArticleOverloadBot) -> None:
+    """Set up command.
+
+    Description: Sets up the ArticleOverload Cog
+    :Return: None
+    """
     await client.add_cog(ArticleOverload(client))
