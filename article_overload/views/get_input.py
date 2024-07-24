@@ -20,12 +20,14 @@ class Input(Modal):
         )
         self.add_item(self.first)
 
-    async def callback(self, _: Interaction) -> None:
+    async def on_submit(self, interaction: Interaction) -> None:
         """Submit callback.
 
         Description: Callback to check if a user has submitted the form.
         :Return: None
         """
+        await interaction.response.defer()
+
         self.stop()
 
 

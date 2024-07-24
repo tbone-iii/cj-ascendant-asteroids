@@ -80,7 +80,7 @@ class SelectOptionsView(View):
     @button(label="Complete", style=ButtonStyle.green, row=4)
     async def submit(
         self,
-        _: Interaction,
+        interaction: Interaction,
         __: Button,
     ) -> None:
         """Complete button.
@@ -88,6 +88,8 @@ class SelectOptionsView(View):
         Description: Callback to check if a user has pressed submit to stop selection.
         :Return: None
         """
+        await interaction.response.defer()
+
         self.stop()
 
     async def interaction_check(self, interaction: Interaction) -> bool:

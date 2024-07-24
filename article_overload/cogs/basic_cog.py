@@ -5,7 +5,7 @@ from article_overload.bot import ArticleOverloadBot
 from article_overload.mention_target import MentionTarget
 from article_overload.tools.desc import COMMAND_DESC
 from article_overload.tools.utils import create_success_embed, create_warning_embed
-from article_overload.views import ButtonView, ConfirmDeny, InputButton
+from article_overload.views import ButtonView, ConfirmDeny, InputButton, SelectOptionsView
 from article_overload.views.confirm_deny import ConfirmDenyOptions
 
 
@@ -84,10 +84,9 @@ class Sample(commands.Cog):
         Description: Shows a confirmation message with options to confirm or deny
         :Return: None
         """
-        # TODO: Figure out why user gets interaction failed even
-        # if there is no error and everything passes successfully
+        await interaction.response.defer()
         view = ConfirmDeny(org_user=interaction.user.id)
-        await interaction.response.send_message(
+        await interaction.followup.send(
             embed=create_warning_embed(
                 title="Are you sure?",
                 description="Do you want to confirm?",
@@ -132,8 +131,8 @@ class Sample(commands.Cog):
         Description: Collects input from the user and stores it to be processed
         :Return: None
         """
-        # TODO: Figure out why user gets interaction failed even
-        # if there is no error and everything passes successfully
+        await interaction.response.defer()
+
         view = InputButton(
             title="Ascendant Asteroid #1",
             message="Will Ascendant Asteroid win the Code Jam?",
@@ -143,7 +142,7 @@ class Sample(commands.Cog):
             title="Important Question",
             description="Please press the button below to answer a short question",
         )
-        await interaction.response.send_message(embed=embed, view=view)
+        await interaction.followup.send(embed=embed, view=view)
         await view.wait()
 
         if view.response is None:
@@ -164,6 +163,25 @@ class Sample(commands.Cog):
                 ),
                 view=None,
             )
+
+    @app_commands.command(name="select_stuff", description=COMMAND_DESC["select_stuff"])
+    async def select_stuff(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Enables user to select items for a menu and displays them
+        :Return: None
+        """
+        await interaction.response.defer()
+
+        view = SelectOptionsView(
+            interaction.user.id,
+            [str(i) + str(i) for i in range(10)],
+            [str(i) for i in range(10)],
+        )
+        await interaction.followup.send(content="Select", view=view)
+        await view.wait()
+
+        await interaction.edit_original_response(content="You selected:\n" + "\n".join(view.clicked))
 
 
 async def setup(client: ArticleOverloadBot) -> None:
