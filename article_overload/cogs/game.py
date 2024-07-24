@@ -64,9 +64,11 @@ class ArticleOverload(commands.Cog):
         """
         game = self.games.get(interaction.user.id, None)
         if game is None:
-            return await create_warning_embed(
-                title="Not In Game!",
-                description="You are not in a game!",
+            return await interaction.response.send_message(
+                embed=create_warning_embed(
+                    title="Not In Game!",
+                    description="You are not in a game!",
+                ),
             )
 
         game.end_game()
