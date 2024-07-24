@@ -10,7 +10,7 @@ target-version = "py312"
 fix = true
 # The directory containing the source code. If you choose a different project layout
 # you will need to update this value.
-src = ["src"]
+src = ["article_overload"]
 
 [tool.ruff.lint]
 # Enable all linting rules.
@@ -41,4 +41,38 @@ ignore = [
     # Annotations.
     "ANN101",
     "ANN102",
+    # Assert error.
+    "S101",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    # Undocumented public function (not needed for unit tests)
+    "D103",
+    # Missing docstrings.
+    "D100",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
+    # Docstring whitespace.
+    "D203",
+    "D213",
+    # Docstring punctuation.
+    "D415",
+    # Docstring quotes.
+    "D301",
+    # Builtins.
+    "A",
+    # Print statements.
+    "T20",
+    # TODOs.
+    "TD002",
+    "TD003",
+    "FIX",
+    # Annotations.
+    "ANN101",
+    "ANN102",
+    # Assert error.
+    "S101",
 ]
