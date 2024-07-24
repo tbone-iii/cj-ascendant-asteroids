@@ -9,7 +9,13 @@ from sqlalchemy import Engine, Row, create_engine, text
 
 from .context import article_overload  # noqa: F401, ignore unused import
 from .exceptions import InvalidTableNameError
-from .utils import TEST_DIRECTORY, DatabaseSetupInfo, prebuild_article, prebuild_articles, remove_local_db_files
+from .utils import (
+    TEST_DIRECTORY,
+    DatabaseSetupInfo,
+    prebuild_article,
+    prebuild_articles,
+    remove_local_db_files,
+)
 
 HandlerEngine = tuple[handler.DatabaseHandler, Engine]
 SetupData = AsyncGenerator[HandlerEngine, None]
@@ -73,7 +79,7 @@ async def setup_db() -> SetupData:
     yield database_handler, engine
 
     # teardown database - if you wish to keep the output database, comment out the following line
-    remove_local_db_files()
+    database_setup_info.file_path.unlink()
 
 
 @pytest.mark.asyncio()

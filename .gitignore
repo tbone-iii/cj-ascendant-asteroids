@@ -31,5 +31,5 @@ build/
 .DS_Store
 
 # Test output database files
-./tests/*.db
-./tests/output/*.db
+/tests/*.db
+/tests/output/*.db

@@ -11,6 +11,7 @@ Articles = list[objects.Article]
 
 
 TEST_DIRECTORY = Path("./tests/").resolve()
+OUTPUT_DIRECTORY = TEST_DIRECTORY / "output/"
 
 
 @dataclass
@@ -28,7 +29,7 @@ class DatabaseSetupInfo:
 
 def remove_local_db_files() -> None:
     """Remove all local database files created during testing."""
-    for file_path in TEST_DIRECTORY.glob("*.db"):
+    for file_path in OUTPUT_DIRECTORY.glob("*.db"):
         file_path.unlink()
 
 
