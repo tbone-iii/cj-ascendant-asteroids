@@ -1,11 +1,16 @@
-import openai
 import os
 import json
 import random
 import sys
 
+import openai
+import feedparser
+import datetime
+
 openai.api_key = sys.argv[1]
 GPT_MODEL = "gpt-4"
+NEWS_API_KEY="589889c3716740ca8fc4c9c6413bac96"
+NEWS_SITE_RSS_URL = "https://finance.yahoo.com/rss/"
 
 INPUT_ARTICLE = r"""Breaking Down the Trump Family Tree
 5 minute read
@@ -86,31 +91,33 @@ Barron Trump during a campaign event at Trump National Doral Golf Club in Miami,
 
 In May 2024, Barron graduated from Oxbridge Academy in Palm Beach, Florida, though he has not announced where he will attend college. Barron joined his father on the campaign trail in July at a rally in Doral, Florida."""
 
-class ArticleRawInfo:
-    def __init__(self, url: str, body_text: str=""):
-        self.url = url
-        # TODO rss parser or somethin for body text
-        if not body_text:
-            self.body_text = INPUT_ARTICLE
-        else:
-            self.body_text = body_text
-
 class Article:
-    def __init__(self, article_info: ArticleRawInfo, summery: str):
-        self.article_info = article_info
+    def __init__(self, body_text: str, summery: str, 
+                 topic: str="General", 
+                 size: str="Small", 
+                 date: datetime.datetime=datetime.datetime.now(), 
+                 url: str="", author: str=GPT_MODEL):
+
+        self.body_text = body_text
+        self.topic = topic
+        self.size = size
+        self.date = date
+        self.url = url
+        self.author = author
+
         self.summery = summery
         self.sentence_options = []
 
         scanning = False
         for char in list(self.summery):
-            if char == '{' or char == '[':
+            if char == '<' or char == '[':
                 if char == '[': 
                     self.incorrect_option = len(self.sentence_options)
 
                 self.sentence_options.append("")
                 scanning = True
 
-            elif char == '}' or char == ']':
+            elif char == '>' or char == ']':
                 scanning = False
 
             elif scanning:
@@ -130,9 +137,14 @@ class Article:
             options_out += "\n"
 
         return f"""
------ {self.article_info.url} -----
+----- INFO -----
+Topic: {self.topic}
+Size: {self.size}
+Date: {self.date}
+URL: {self.url}
+Author: {self.author}
 ----- TEXT BODY START -----
-{self.article_info.body_text}
+{self.body_text}
 ----- TEXT BODY END -----
 
 ----- SUMMERY START -----
@@ -150,9 +162,13 @@ class Article:
         articles = Article.collect_articles()
 
         articles.append({
-            "url": self.article_info.url,
-            "body_text": self.article_info.body_text,
-            "summery": self.summery
+            "body_text": self.body_text,
+            "summery": self.summery,
+            "url": self.url,
+            "topic": self.topic,
+            "size": self.size,
+            "date": "{}-{}-{}".format(self.date.year, self.date.month, self.date.day),
+            "author": self.author
         })
 
         with open('articles.json', 'w') as f:
@@ -173,7 +189,13 @@ class Article:
     @staticmethod
     def create_article_with_json(data: json):
         '''Creates an instance of Article with the given json data'''
-        return Article(ArticleRawInfo(data["url"], data["body_text"]), data["summery"])
+        return Article(data["body_text"],
+                       data["summery"],
+                       data["topic"],
+                       data["size"],
+                       datetime.datetime(data["date"]),
+                       data["url"],
+                       data["author"])
 
     @staticmethod
     def pick_random():
@@ -195,15 +217,19 @@ def getGPTResponse(prompt_text:str):
 def getSummery(article_body: str) -> str:
     # res = getGPTResponse("Please summarize the following article\n \
     # I need you to add in a fake sentence with false facts for a game, please surround this sentence with []\n \
-    # Please pick 3 other sentences, don't change them, just put {} around them\n" + article_body)
+    # Please pick 3 other sentences, don't change them, just put <> around them\n" + article_body)
 
-    res = getGPTResponse("Please summarize the following article in around facts, each fact sentence should be no longer than 10 words, label 3 of these sentces with {} (Please don't include bullet points or numbers in the brackets) then add a sentence containing fake information, wrapped in [] instead\n \
+    res = getGPTResponse("Please summarize the following article in around facts, each fact sentence should be no longer than 10 words, \
+                         label 3 of these sentces with <> (Please don't include bullet points or numbers in the brackets) \
+                         then add a sentence containing fake information, wrapped in [] instead\n \
+                         Please never but [] inside of <> or vise versa\n \
     " + article_body)
 
     return res
 
 # [] is fake
-# {} is real
-ar = ArticleRawInfo("someurl")
-a = Article(ar, getSummery(ar.body_text))
-print(a)
+# <> is real
+article_body_text = getGPTResponse("Generate an article based on cats that is under 300 words")
+article = Article(article_body_text, getSummery(article_body_text))
+article.write()
+print(article)
