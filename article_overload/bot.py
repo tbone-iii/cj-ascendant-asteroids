@@ -137,6 +137,7 @@ class ArticleOverloadBot(commands.Bot):
         """
         for guild in self.guilds:
             self.tree.clear_commands(guild=guild)
+            self.tree.copy_global_to(guild=guild)
             await self.tree.sync(guild=guild)
 
 
