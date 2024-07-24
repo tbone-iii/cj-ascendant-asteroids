@@ -20,7 +20,7 @@ class Input(Modal):
         )
         self.add_item(self.first)
 
-    async def callback(self, interaction: Interaction) -> None:  # noqa: ARG002
+    async def callback(self, _: Interaction) -> None:
         """Submit callback.
 
         Description: Callback to check if a user has submitted the form.
