@@ -1,5 +1,19 @@
+from enum import Enum
+
 from discord import ButtonStyle, Interaction
 from discord.ui import Button, View, button
+
+
+class ConfirmDenyOptions(Enum):
+    """ConfirmDenyOptions Enum class.
+
+    Description: Contains possible responses to the ConfirmDeny View
+    :Return: None
+    """
+
+    YES = 0
+    NO = 1
+    EXPIRED = 2
 
 
 class ConfirmDeny(View):
@@ -12,7 +26,7 @@ class ConfirmDeny(View):
         :Return: None
         """
         super().__init__()
-        self.value: bool | None = None  # TODO: Consider using enum here
+        self.value: bool | None = None
         self.org_user = org_user
 
     @button(
@@ -30,7 +44,7 @@ class ConfirmDeny(View):
         Description: Button to confirm.
         :Return: None
         """
-        self.value = True
+        self.value = ConfirmDenyOptions.YES
         self.stop()
 
         self.clear_items()
@@ -46,7 +60,7 @@ class ConfirmDeny(View):
         Description: Button to deny.
         :Return: None
         """
-        self.value = False
+        self.value = ConfirmDenyOptions.NO
         self.stop()
 
         self.clear_items()
@@ -72,4 +86,5 @@ class ConfirmDeny(View):
         Description: Callback for checking if the view has reached its timeout.
         :Return: None
         """
+        self.value = ConfirmDenyOptions.EXPIRED
         self.stop()

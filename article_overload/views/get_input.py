@@ -5,15 +5,13 @@ from discord.ui import Button, Modal, TextInput, View, button
 class Input(Modal):
     """Submit input modal class."""
 
-    def __init__(self, title: str, message: str, view: View) -> None:
+    def __init__(self, title: str, message: str) -> None:
         """Subclass of View.
 
         Description: Initializes a Modal subclass that allows a user to input a value into a form.
         :Return: None
         """
         super().__init__(title=title)
-
-        self.view = view
 
         self.first: TextInput = TextInput(
             label=message,
@@ -28,8 +26,6 @@ class Input(Modal):
         Description: Callback to check if a user has submitted the form.
         :Return: None
         """
-        # TODO: where is the view.response coming from? appears to be missing attribute
-        self.view.response = self.first.value
         self.stop()
 
 
@@ -59,9 +55,11 @@ class InputButton(View):
         Description: Callback to check if a user has pressed submit to display modal.
         :Return: None
         """
-        modal = Input(self.title, self.message, self)
+        modal = Input(self.title, self.message)
         await interaction.response.send_modal(modal)
         await modal.wait()
+
+        self.response = modal.first.value
 
         self.stop()
 
