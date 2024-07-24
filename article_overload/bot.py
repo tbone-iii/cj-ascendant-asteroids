@@ -83,7 +83,7 @@ class ArticleOverloadBot(commands.Bot):
         print(color_message(message=f"Logged in as {self.user}!", color="green"))
 
         await self.load_extensions()
-        await self.tree.sync()
+        await self.sync_commands()
 
         self.update_presence.start()
 
@@ -109,7 +109,6 @@ class ArticleOverloadBot(commands.Bot):
         :Return: None
         """
         await self.wait_until_ready()
-
         await self.change_presence(
             status=discord.Status.online,
             activity=discord.Activity(
@@ -117,6 +116,16 @@ class ArticleOverloadBot(commands.Bot):
                 name=secrets.choice(NEWS_STATIONS),
             ),
         )
+
+    async def sync_commands(self) -> None:
+        """Sync the slash commands list.
+
+        Description: Sync the slash commands list with the bot for each guild (server).
+        :Return: None
+        """
+        for guild in self.guilds:
+            self.tree.clear_commands(guild=guild)
+            await self.tree.sync(guild=guild)
 
 
 def clear_console() -> None:
