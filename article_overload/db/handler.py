@@ -1,11 +1,7 @@
 from typing import TypeVar
 
 from sqlalchemy import insert, select
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-)
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
 
 from .models import ArticleRecord, init_database
@@ -72,7 +68,7 @@ class DatabaseHandler:
                 select(ArticleRecord).where(ArticleRecord.id == article_id),
             )
             article_record = result.scalars().first()
-            return Article(**article_record.__dict__) if article_record else None
+            return Article.from_dict(article_record.__dict__) if article_record else None
 
     def get_all_articles(self, session: Session) -> list[Article]:
         """Get all articles.
@@ -82,12 +78,7 @@ class DatabaseHandler:
         article_records = session.query(ArticleRecord).all()
         return [Article(**article_record.__dict__) for article_record in article_records]
 
-    def update_article(
-        self,
-        session: Session,
-        article_id: int,
-        article: Article,
-    ) -> None:
+    def update_article(self, session: Session, article_id: int, article: Article) -> None:
         """Update article by ID.
 
         :Return: `None`
