@@ -20,12 +20,14 @@ class Input(Modal):
         )
         self.add_item(self.first)
 
-    async def callback(self, _: Interaction) -> None:
+    async def on_submit(self, interaction: Interaction) -> None:
         """Submit callback.
 
         Description: Callback to check if a user has submitted the form.
         :Return: None
         """
+        await interaction.response.defer()
+
         self.stop()
 
 
@@ -42,7 +44,7 @@ class InputButton(View):
         self.title = title
         self.message = message
         self.org_user = org_user
-        self.response = None
+        self.response: str | None = None
 
     @button(label="Submit", style=ButtonStyle.green)
     async def submit(
@@ -70,10 +72,7 @@ class InputButton(View):
         :Return: Boolean
         """
         if interaction.user.id != self.org_user:
-            await interaction.response.send_message(
-                "You can't click this!",
-                ephemeral=True,
-            )
+            await interaction.response.send_message("You can't click this!", ephemeral=True)
             return False
 
         return True

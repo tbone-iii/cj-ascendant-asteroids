@@ -14,6 +14,7 @@ class ConfirmDenyOptions(Enum):
     YES = 0
     NO = 1
     EXPIRED = 2
+    NONE = 3
 
 
 class ConfirmDeny(View):
@@ -26,19 +27,11 @@ class ConfirmDeny(View):
         :Return: None
         """
         super().__init__()
-        self.value: bool | None = None
+        self.value: ConfirmDenyOptions = ConfirmDenyOptions.NONE
         self.org_user = org_user
 
-    @button(
-        label="Yes",
-        emoji="<:Check:779247977721495573>",
-        style=ButtonStyle.green,
-    )
-    async def confirm(
-        self,
-        _: Interaction,
-        __: Button,
-    ) -> None:
+    @button(label="Yes", emoji="<:Check:779247977721495573>", style=ButtonStyle.green)
+    async def confirm(self, _: Interaction, __: Button) -> None:
         """Confirm button.
 
         Description: Button to confirm.
@@ -50,11 +43,7 @@ class ConfirmDeny(View):
         self.clear_items()
 
     @button(label="No", emoji="<:Cross:779247977843523594>", style=ButtonStyle.red)
-    async def deny(
-        self,
-        _: Interaction,
-        __: Button,
-    ) -> None:
+    async def deny(self, _: Interaction, __: Button) -> None:
         """Deny button.
 
         Description: Button to deny.
@@ -72,10 +61,7 @@ class ConfirmDeny(View):
         :Return: Boolean
         """
         if interaction.user.id != self.org_user:
-            await interaction.response.send_message(
-                "You can't click this!",
-                ephemeral=True,
-            )
+            await interaction.response.send_message("You can't click this!", ephemeral=True)
             return False
 
         return True

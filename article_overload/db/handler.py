@@ -1,8 +1,7 @@
 from typing import TypeVar
 
-from sqlalchemy import insert, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import Session
 
 from .models import ArticleRecord, init_database
 from .objects import Article
@@ -29,21 +28,22 @@ class DatabaseHandler:
         """
         self = cls(database_url)
         self.engine = await init_database(database_url)
-        self.session_factory = async_sessionmaker(self.engine)
+        self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
         return self
 
     async def add_article(self, article: Article) -> Article:
-        """Add article to database. Return the new Article.
+        """Add `Article` to database. Return the updated `Article`.
 
         :Return: `Article`
         """
-        async with self.session_factory() as session, session.begin():
-            article_records = await session.scalars(
-                insert(ArticleRecord).returning(ArticleRecord),
-                [article.get_dict()],
-            )
-            article_record = next(article_records)
-            return Article.from_dict(article_record.__dict__)
+        # parse down Article summary and fake_fact
+
+        async with self.session_factory() as session:
+            async with session.begin():
+                article_record = article.create_article_record()
+                session.add(article_record)
+
+            return article.update_id_from_article_record(article_record)
 
     async def add_articles(self, articles: list[Article]) -> list[Article]:
         """Add multiple articles to the database. Return the new Articles.
@@ -51,12 +51,15 @@ class DatabaseHandler:
         This is a bulk insert operation.
         :Return: `list[Article]`
         """
-        async with self.session_factory() as session, session.begin():
-            article_records = await session.scalars(
-                insert(ArticleRecord).returning(ArticleRecord),
-                [article.get_dict() for article in articles],
-            )
-            return [Article.from_dict(article_record.__dict__) for article_record in article_records]
+        async with self.session_factory() as session:
+            async with session.begin():
+                article_records = [article.create_article_record() for article in articles]
+                session.add_all(article_records)
+
+            return [
+                article.update_id_from_article_record(article_record)
+                for article, article_record in zip(articles, article_records, strict=False)
+            ]
 
     async def get_article_by_id(self, article_id: int) -> Article | None:
         """Get article by ID.
@@ -64,11 +67,11 @@ class DatabaseHandler:
         :Return: `Article` or `None`
         """
         async with self.session_factory() as session:
-            result = await session.execute(
-                select(ArticleRecord).where(ArticleRecord.id == article_id),
-            )
-            article_record = result.scalars().first()
-            return Article.from_dict(article_record.__dict__) if article_record else None
+            article_record = await session.get(ArticleRecord, article_id)
+
+            if article_record is None:
+                return None
+            return Article.create_from_article_record(article_record)
 
     async def get_all_articles(self) -> list[Article]:
         """Get all articles.
@@ -79,26 +82,7 @@ class DatabaseHandler:
         :Return: `list[Article]`
         """
         async with self.session_factory() as session:
-            result = await session.execute(select(ArticleRecord))
-            article_record_rows = result.all()
-            return [
-                Article.from_dict(article_record_row.ArticleRecord.__dict__)
-                for article_record_row in article_record_rows
-            ]
-
-    def update_article(self, session: Session, article_id: int, article: Article) -> None:
-        """Update article by ID.
-
-        :Return: `None`
-        """
-        query = session.query(ArticleRecord)
-        article_record = query.filter(ArticleRecord.id == article_id).first()
-
-        if article_record is None:
-            print(f"Warning: Article ID '{article_id}' not found. Skipping update.")
-            return
-
-        for key, value in article.get_dict().items():
-            setattr(article, key, value)
-
-        session.commit()
+            article_records_chunked_iterator = await session.execute(select(ArticleRecord))
+            article_records_tuples = article_records_chunked_iterator.all()
+            article_records = [record[0] for record in article_records_tuples]
+            return [Article.create_from_article_record(article_record) for article_record in article_records]

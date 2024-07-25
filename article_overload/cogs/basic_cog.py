@@ -1,17 +1,16 @@
 from discord import Embed, Interaction, app_commands
 from discord.ext import commands
-from utils.game_classes import Game, Player
 
 from article_overload.bot import ArticleOverloadBot
 from article_overload.mention_target import MentionTarget
-from article_overload.tools.desc import COMMAND_DESC
+from article_overload.tools.desc import CommandDescriptions
 from article_overload.tools.utils import create_success_embed, create_warning_embed
-from article_overload.views import ButtonView, ConfirmDeny, InputButton
+from article_overload.views import ButtonView, ConfirmDeny, InputButton, PaginationView, SelectOptionsView
 from article_overload.views.confirm_deny import ConfirmDenyOptions
 
 
-class Basic(commands.Cog):
-    """Basic cog class."""
+class Sample(commands.Cog):
+    """Sample cog class."""
 
     def __init__(self, client: ArticleOverloadBot) -> None:
         """Initialize method.
@@ -20,9 +19,8 @@ class Basic(commands.Cog):
         :Return: None
         """
         self.client = client
-        self.game = Game()
 
-    @app_commands.command(name="ping", description=COMMAND_DESC["ping"])
+    @app_commands.command(name="ping", description=CommandDescriptions.PING.value)
     async def ping(self, interaction: Interaction) -> None:
         """Bot command.
 
@@ -31,7 +29,7 @@ class Basic(commands.Cog):
         """
         await interaction.response.send_message("pong")
 
-    @app_commands.command(name="create_embed", description=COMMAND_DESC["create_embed"])
+    @app_commands.command(name="create_embed", description=CommandDescriptions.CREATE_EMBED.value)
     async def create_embed(self, interaction: Interaction) -> None:
         """Bot command.
 
@@ -44,7 +42,7 @@ class Basic(commands.Cog):
 
     @app_commands.command(
         name="create_button_example",
-        description=COMMAND_DESC["create_button_example"],
+        description=CommandDescriptions.CREATE_BUTTON_EXAMPLE.value,
     )
     async def create_button(self, interaction: Interaction) -> None:
         """Bot command.
@@ -56,7 +54,7 @@ class Basic(commands.Cog):
 
     @app_commands.command(
         name="greet",
-        description=COMMAND_DESC["greet"],
+        description=CommandDescriptions.GREET.value,
     )
     async def greet(
         self,
@@ -79,17 +77,16 @@ class Basic(commands.Cog):
         mention_value = " @everyone" if mention_target == MentionTarget.EVERYONE else ""
         await interaction.response.send_message(f"Greetings{mention_value}!")
 
-    @app_commands.command(name="confirm_deny", description=COMMAND_DESC["confirm_deny"])
+    @app_commands.command(name="confirm_deny", description=CommandDescriptions.CONFIRM_DENY.value)
     async def confirm_deny(self, interaction: Interaction) -> None:
         """Bot command.
 
         Description: Shows a confirmation message with options to confirm or deny
         :Return: None
         """
-        # TODO: Figure out why user gets interaction failed even
-        # if there is no error and everything passes successfully
+        await interaction.response.defer()
         view = ConfirmDeny(org_user=interaction.user.id)
-        await interaction.response.send_message(
+        await interaction.followup.send(
             embed=create_warning_embed(
                 title="Are you sure?",
                 description="Do you want to confirm?",
@@ -127,15 +124,15 @@ class Basic(commands.Cog):
                 view=None,
             )
 
-    @app_commands.command(name="user_input", description=COMMAND_DESC["user_input"])
+    @app_commands.command(name="user_input", description=CommandDescriptions.USER_INPUT.value)
     async def user_input(self, interaction: Interaction) -> None:
         """Bot command.
 
         Description: Collects input from the user and stores it to be processed
         :Return: None
         """
-        # TODO: Figure out why user gets interaction failed even
-        # if there is no error and everything passes successfully
+        await interaction.response.defer()
+
         view = InputButton(
             title="Ascendant Asteroid #1",
             message="Will Ascendant Asteroid win the Code Jam?",
@@ -145,7 +142,7 @@ class Basic(commands.Cog):
             title="Important Question",
             description="Please press the button below to answer a short question",
         )
-        await interaction.response.send_message(embed=embed, view=view)
+        await interaction.followup.send(embed=embed, view=view)
         await view.wait()
 
         if view.response is None:
@@ -167,46 +164,54 @@ class Basic(commands.Cog):
                 view=None,
             )
 
-    @app_commands.command(
-        name="article_overload",
-        description=COMMAND_DESC["game_start"],
-    )
-    async def article_overload(self, interaction: Interaction) -> None:
+    @app_commands.command(name="select_stuff", description=CommandDescriptions.SELECT_STUFF.value)
+    async def select_stuff(self, interaction: Interaction) -> None:
         """Bot command.
 
-        Description: Starts the game
+        Description: Enables user to select items for a menu and displays them
         :Return: None
         """
-        author = interaction.user
-        url = author.avatar.url if author.avatar else ""
-        player = Player(
-            player_id=author.id,
-            name=author.name,
-            display_name=author.display_name,
-            avatar_url=url,
+        await interaction.response.defer()
+
+        view = SelectOptionsView(
+            interaction.user.id,
+            [str(i) + str(i) for i in range(100)],
+            [str(i) for i in range(100)],
         )
-        self.game.add_player(player)
-        self.game.start_game()
+        await interaction.followup.send(content="Select", view=view)
+        await view.wait()
 
-        # Create an embed to display the player details
-        embed = self.game.create_start_game_embed(player)
-        await interaction.response.send_message(embed=embed)
+        await interaction.edit_original_response(content="You selected:\n" + "\n".join(view.clicked), view=None)
 
-    @app_commands.command(name="end_game", description=COMMAND_DESC["game_end"])
-    async def end_game(self, interaction: Interaction) -> None:
+    @app_commands.command(name="pagination", description=CommandDescriptions.PAGINATION.value)
+    async def pagination(self, interaction: Interaction) -> None:
         """Bot command.
 
-        Description: Ends the game
+        Description: Enables user to page through items in embeds
         :Return: None
         """
-        self.game.end_game()
-        await interaction.response.send_message("Game ended!")
+        await interaction.response.defer()
+
+        view = PaginationView(
+            interaction.user.id,
+            [
+                {
+                    "embed": Embed(title=str(i) * 5, description=str(i) * 3),
+                    "title": str(i),
+                    "description": str(i) * 2,
+                    "num": i + 1,
+                }
+                for i in range(100)
+            ],
+        )
+        await interaction.followup.send(embed=Embed(title="Page through stuff"), view=view)
+        await view.wait()
 
 
 async def setup(client: ArticleOverloadBot) -> None:
     """Set up command.
 
-    Description: Sets up the Basic Cog
+    Description: Sets up the Sample Cog
     :Return: None
     """
-    await client.add_cog(Basic(client))
+    await client.add_cog(Sample(client))

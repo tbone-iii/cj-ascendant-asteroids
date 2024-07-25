@@ -1,9 +1,19 @@
-import sqlalchemy as sa
-from sqlalchemy import orm
+from enum import Enum
+
+from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncEngine, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-class Base(AsyncAttrs, orm.DeclarativeBase):
+class TableName(Enum):
+    """Enumeration of table names for SQLAlchemy ORM."""
+
+    ARTICLE = "article"
+    SUMMARY = "summary"
+    FAKE_FACT = "fake_fact"
+
+
+class Base(AsyncAttrs, DeclarativeBase):
     """Base class for SQLAlchemy ORM models."""
 
 
@@ -13,11 +23,35 @@ class ArticleRecord(Base):
     Includes details like URL and summary.
     """
 
-    __tablename__ = "article"
-    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True, nullable=False)
-    url = sa.Column(sa.String, nullable=False)
-    body_text = sa.Column(sa.String, nullable=False)
-    summary = sa.Column(sa.String, nullable=False)
+    __tablename__ = TableName.ARTICLE.value
+    id: Mapped[int] = mapped_column(primary_key=True)
+    url: Mapped[str] = mapped_column(nullable=False)
+    body_text: Mapped[str] = mapped_column(nullable=False)
+    summary: Mapped[str] = mapped_column(nullable=False)
+
+
+class SummaryRecord(Base):
+    """Summary model for SQLAlchemy ORM.
+
+    Includes details like the summary text and the article ID.
+    """
+
+    __tablename__ = TableName.SUMMARY.value
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    article_id = Column(Integer, ForeignKey("article.id"), nullable=False)
+    summary = Column(String, nullable=False)
+
+
+class FakeFactRecord(Base):
+    """Fake Fact model for SQLAlchemy ORM.
+
+    Includes details like the fake fact text and the article ID.
+    """
+
+    __tablename__ = TableName.FAKE_FACT.value
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    article_id = Column(Integer, ForeignKey("article.id"), nullable=False)
+    fake_fact = Column(String, nullable=False)
 
 
 async def init_database(database_url: str) -> AsyncEngine:

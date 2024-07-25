@@ -6,7 +6,7 @@ import subprocess
 import discord
 from discord.ext import commands, tasks
 
-from .constants import INTENTS, NEWS_STATIONS, OWNER_IDS
+from .constants import IGNORE_FILES, INTENTS, NEWS_STATIONS, OWNER_IDS
 from .exceptions import InvalidTokenError, NoTokenProvidedError
 from .tools.utils import color_message, get_json_file, read_text_file, update_json_file
 
@@ -23,6 +23,7 @@ class ArticleOverloadBot(commands.Bot):
         :Return: None
         """
         super().__init__(command_prefix="ao!", intents=INTENTS, owner_ids=OWNER_IDS)
+        self.unloaded_cogs: list[str] = []
 
     def start_bot(self, token: str | None) -> None:
         """Start the bot.
@@ -56,8 +57,18 @@ class ArticleOverloadBot(commands.Bot):
         """
         startup_config = get_json_file("./bot_data/startup_config.json")
 
-        for cog in os.listdir("./cogs"):
-            if not (cog.endswith(".py") and cog != "__init__.py"):
+        for cog in [file for file in os.listdir("./cogs") if file.endswith(".py") and file not in IGNORE_FILES]:
+            if cog[:-3] not in startup_config:
+                startup_config[cog[:-3]] = {"enabled": False}
+
+            if not startup_config[cog[:-3]]["enabled"]:
+                print(
+                    color_message(
+                        message=f"Skipping {cog[:-3]} as it is not enabled",
+                        color="yellow",
+                    ),
+                )
+                self.unloaded_cogs.append(cog[:-3])
                 continue
 
             try:
@@ -71,6 +82,7 @@ class ArticleOverloadBot(commands.Bot):
                     )
                     + str(e),
                 )
+
         update_json_file(startup_config, "./bot_data/startup_config.json")
 
     @commands.Cog.listener()
@@ -125,6 +137,7 @@ class ArticleOverloadBot(commands.Bot):
         """
         for guild in self.guilds:
             self.tree.clear_commands(guild=guild)
+            self.tree.copy_global_to(guild=guild)
             await self.tree.sync(guild=guild)
 
 
