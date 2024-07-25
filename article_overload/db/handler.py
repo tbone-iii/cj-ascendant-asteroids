@@ -4,6 +4,8 @@ from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
 
+from tools.utils import color_message
+
 from .models import ArticleRecord, init_database
 from .objects import Article
 
@@ -86,7 +88,12 @@ class DatabaseHandler:
                 for article_record_row in article_record_rows
             ]
 
-    def update_article(self, session: Session, article_id: int, article: Article) -> None:
+    def update_article(
+        self,
+        session: Session,
+        article_id: int,
+        article: Article,
+    ) -> None:
         """Update article by ID.
 
         :Return: `None`
@@ -95,7 +102,12 @@ class DatabaseHandler:
         article_record = query.filter(ArticleRecord.id == article_id).first()
 
         if article_record is None:
-            print(f"Warning: Article ID '{article_id}' not found. Skipping update.")
+            print(
+                color_message(
+                    message=f"Warning: Article ID '{article_id}' not found. Skipping update.",
+                    color="yellow",
+                ),
+            )
             return
 
         for key, value in article.get_dict().items():

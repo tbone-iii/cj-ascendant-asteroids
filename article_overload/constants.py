@@ -31,3 +31,5 @@ OWNER_IDS: list[int] = [
 NEWS_STATIONS: list[str] = ["ANC", "BBC", "CBS", "CNN", "Fox News", "Reddit"]
 
 INTENTS: Intents = Intents(message_content=True)
+
+IGNORE_FILES = ["__init__.py"]
