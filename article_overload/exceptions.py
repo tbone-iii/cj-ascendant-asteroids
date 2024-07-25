@@ -16,3 +16,7 @@ class DatabaseEngineNotInitializedError(Exception):
 
 class DatabaseSessionNotInitializedError(Exception):
     """For when the database session is not initialized."""
+
+
+class DatabaseObjectNotProperlyInitializedError(Exception):
+    """For when the database object is not properly initialized."""
