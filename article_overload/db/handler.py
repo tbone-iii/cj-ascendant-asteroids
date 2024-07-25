@@ -2,7 +2,6 @@ from typing import TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
-from tools.utils import color_message
 
 from .models import ArticleRecord, init_database
 from .objects import Article
