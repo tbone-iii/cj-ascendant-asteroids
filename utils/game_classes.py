@@ -1,9 +1,17 @@
+import secrets
 import time
 from collections.abc import Callable
-from typing import Self
+from enum import Enum
 
 import discord
 
+
+class AbilityType(Enum):
+    """a class to represent abilities available to a player."""
+
+    COOLDOWN = "Cooldown"
+    REMOVE_QUESTION = "Remove Question"
+    EXTEND_TIMER = "Extend Timer"
 
 class Player:
     """A class to represent a player in the game.
@@ -22,13 +30,17 @@ class Player:
         The score of the player.
     abilities : list
         The list of abilities the player has.
+    abilities_meter: int
+        The value of the player's ability meter to determine when ability will appear.
+    abilities_threshold: int
+        The max value a player's ability meter will need to reach before an ability will appear.
 
     Methods
     -------
-    add_ability(ability: 'Ability') -> None:
+    add_ability(ability: AbilityType) -> None:
         Add an ability to the player's list of abilities.
-    use_ability(ability_name: str, target: 'Player') -> bool:
-        Use an ability on a target.
+    use_ability(ability: AbilityType) -> None:
+        Use an ability.
     update_score(points: int) -> None:
         Update the player's score.
     get_display_name() -> str:
@@ -39,6 +51,14 @@ class Player:
         Return the player's ID.
     get_score() -> int:
         Return the player's score.
+    get_abilities() -> list:
+        Return the player's abilities.
+    get_abilities_meter() -> int:
+        Return the player's abilities meter.
+    update_abilities_meter(value: int) -> None:
+        Update the player's abilities meter.
+    reset_abilities_meter() -> None:
+        Reset the player's abilities meter.
 
     """
 
@@ -68,39 +88,33 @@ class Player:
         self.display_name = display_name
         self.avatar_url = avatar_url
         self.score = 0
-        self.abilities: list[Ability] = []
+        self.abilities = []
+        self.abilities_meter = 0
+        self.abilities_threshold = 100
 
-    def add_ability(self, ability: "Ability") -> None:
+    def add_ability(self, ability: AbilityType) -> None:
         """Add an ability to the player's list of abilities.
 
         Parameters
         ----------
-        ability : Ability
+        ability : AbilityType
             The ability to be added.
 
         """
         self.abilities.append(ability)
 
-    def use_ability(self, ability_name: str, target: Self) -> bool:
-        """Use an ability on a target.
+    def use_ability(self, ability: AbilityType) -> None:
+        """Use an ability.
 
         Parameters
         ----------
-        ability_name : str
-            The name of the ability to be used.
-        target : Player
-            The target player on whom the ability will be used.
-
-        Returns
-        -------
-        bool
-            True if the ability was successfully used, False otherwise.
+        ability : AbilityType
+            The ability to be used.
 
         """
-        for ability in self.abilities:
-            if ability.name == ability_name:
-                return ability.activate(self, target)
-        return False
+        if ability in self.abilities:
+            # Add cases for specific ability effects
+            self.abilities.remove(ability)
 
     def update_score(self, points: int) -> None:
         """Update the player's score.
@@ -157,6 +171,25 @@ class Player:
         """
         return self.score
 
+    def get_abilities(self) -> list:
+        """Get the list of player's abilities."""
+        return self.abilities
+
+    def get_abilities_meter(self) -> int:
+        """Get the value of player's ability meter."""
+        return self.abilities_meter
+
+    def update_abilities_meter(self, value: int) -> None:
+        """Update the value of player's ability meter."""
+        self.abilities_meter += value
+        if self.abilities_meter >= self.abilities_threshold:
+            self.abilities_meter = 0
+            # Use secrets library to address Ruff linter's requests
+            self.add_ability(secrets.choice(list(AbilityType)))
+
+    def reset_abilities_meter(self) -> None:
+        """Reset the abilities meter."""
+        self.abilities_meter = 0
 
 class Game:
     """A class to represent the game.
@@ -167,19 +200,25 @@ class Game:
         The list of players in the game.
     state : str
         The current state of the game.
+    start_time : float
+        The start time in seconds.
+    end_time: float
+        The end time in seconds.
 
     Methods
     -------
-    add_player(player: 'Player') -> None:
+    add_player(player: Player) -> None:
         Add a player to the game.
     start_game() -> None:
         Start the game by changing the state to 'in_progress'.
     end_game() -> None:
         End the game by changing the state to 'ended'.
-    get_player(player_id: int) -> 'Player':
+    get_player(player_id: int) -> Player | None:
         Retrieve a player by their ID.
-    create_start_game_embed(player: 'Player') -> discord.Embed:
+    create_start_game_embed(player: Player) -> discord.Embed:
         Create a Discord embed for the start of the game.
+    get_game_duration() -> str:
+        Return the duration of the game as a formatted string.
 
     """
 
@@ -187,6 +226,8 @@ class Game:
         """Construct all the necessary attributes for the game object."""
         self.players: list[Player] = []
         self.state = "not_started"
+        self.start_time: float = 0.0
+        self.end_time: float = 0.0
 
     def add_player(self, player: Player) -> None:
         """Add a player to the game.
@@ -202,10 +243,12 @@ class Game:
     def start_game(self) -> None:
         """Start the game by changing the state to 'in_progress'."""
         self.state = "in_progress"
+        self.start_time = time.time()
 
     def end_game(self) -> None:
         """End the game by changing the state to 'ended'."""
         self.state = "ended"
+        self.end_time = time.time()
 
     def get_player(self, player_id: int) -> "Player | None":
         """Retrieve a player by their ID.
@@ -253,6 +296,14 @@ class Game:
         embed.add_field(name="Score", value=player.get_score(), inline=False)
         embed.set_thumbnail(url=player.get_avatar_url())
         return embed
+
+    def get_game_duration(self) -> str:
+        """Return the duration of the game as a formatted string."""
+        if self.state != "ended":
+            return "Game is still in progress."
+        duration = self.end_time - self.start_time
+        minutes, seconds = divmod(duration, 60)
+        return f"{int(minutes)} minutes {int(seconds)} seconds"
 
 
 class Ability:
