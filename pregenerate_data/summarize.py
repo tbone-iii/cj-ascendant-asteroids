@@ -47,9 +47,34 @@ class ArticleSelectionInfo:
 class ArticleTextInfo:
     """Class info on article body and summary."""
 
-    def __init__(self, body_text: str, summary: str) -> None:
+    def __init__(
+        self,
+        body_text: str,
+        summary: str,
+        sentence_options: list[str] = list[str] | None,
+        incorrect_option: int = int | None,
+    ) -> None:
         self.body_text = body_text
         self.summary = summary
+
+        self.sentence_options = sentence_options
+        self.incorrect_option = incorrect_option
+        if self.sentence_options is None:
+            self.sentence_options = []
+            scanning = False
+            for char in list(self.summary):
+                if char in {"<", "["}:
+                    if char == "[":
+                        self.incorrect_option = len(self.sentence_options)
+
+                    self.sentence_options.append("")
+                    scanning = True
+
+                elif char in {">", "]"}:
+                    scanning = False
+
+                elif scanning:
+                    self.sentence_options[-1] += char
 
 
 class Article:
@@ -58,8 +83,8 @@ class Article:
     def __init__(
         self,
         article_text_info: ArticleTextInfo,
-        article_selection_info: ArticleSelectionInfo=None,
-        article_context_info: ArticleContextInfo=None,
+        article_selection_info: ArticleSelectionInfo = None,
+        article_context_info: ArticleContextInfo = None,
     ) -> None:
         self.article_text_info = article_text_info
 
@@ -71,27 +96,10 @@ class Article:
         if self.article_context_info is None:
             self.article_context_info = ArticleContextInfo()
 
-        self.sentence_options: list[str] = []
-
-        scanning = False
-        for char in list(self.article_text_info.summary):
-            if char in {"<", "["}:
-                if char == "[":
-                    self.incorrect_option = len(self.sentence_options)
-
-                self.sentence_options.append("")
-                scanning = True
-
-            elif char in {">", "]"}:
-                scanning = False
-
-            elif scanning:
-                self.sentence_options[-1] += char
-
     def __repr__(self) -> str:
         options_out = ""
-        for num, sentence in enumerate(self.sentence_options):
-            if num == self.incorrect_option:
+        for num, sentence in enumerate(self.article_text_info.sentence_options):
+            if num == self.article_text_info.incorrect_option:
                 options_out += f"NOT TRUE -> {num}: {sentence}"
             else:
                 options_out += f"{num}: {sentence}"
@@ -129,6 +137,8 @@ Author: {self.article_context_info.author}
             {
                 "body_text": self.article_text_info.body_text,
                 "summary": self.article_text_info.summary,
+                "questions": self.article_text_info.sentence_options,
+                "incorrect_option": self.article_text_info.incorrect_option,
                 "url": self.article_context_info.url,
                 "topic": self.article_selection_info.topic,
                 "size": self.article_selection_info.size,
@@ -154,7 +164,9 @@ Author: {self.article_context_info.author}
         """Create an instance of Article with the given json data."""
         year, month, day = data["date"].split("-")
         return Article(
-            article_text_info=ArticleTextInfo(data["body_text"], data["summary"]),
+            article_text_info=ArticleTextInfo(
+                data["body_text"], data["summary"], data["sentence_options"], data["incorrect_option"],
+            ),
             article_selection_info=ArticleSelectionInfo(data["topic"], data["size"]),
             article_context_info=ArticleContextInfo(
                 date=datetime.datetime(year=year, month=month, day=day, tzinfo=DEFAULT_TIMEZONE),
