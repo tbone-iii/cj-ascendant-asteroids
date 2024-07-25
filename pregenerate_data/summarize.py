@@ -164,12 +164,12 @@ Author: {self.article_context_info.author}
             article_text_info=ArticleTextInfo(
                 data["body_text"],
                 data["summary"],
-                data["sentence_options"],
+                data["questions"],
                 data["incorrect_option"],
             ),
             article_selection_info=ArticleSelectionInfo(data["topic"], data["size"]),
             article_context_info=ArticleContextInfo(
-                date=datetime.datetime(year=year, month=month, day=day, tzinfo=DEFAULT_TIMEZONE),
+                date=datetime.datetime(year=int(year), month=int(month), day=int(day), tzinfo=DEFAULT_TIMEZONE),
                 url=data["url"],
                 author=data["author"],
             ),
