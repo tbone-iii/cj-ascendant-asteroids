@@ -15,9 +15,18 @@ class ButtonView(View):
 
     """
 
-    def __init__(self, interaction: Interaction, embed: Embed) -> None:
+    @button(label="Button", style=ButtonStyle.blurple)
+    async def callback(self, interaction: Interaction, _: Button) -> None:
+        """Responds to button interaction."""
+        await interaction.response.send_message(content="Button clicked")
+
+
+class StartButtonView(View):
+    """View subclass containing a start button."""
+
+    def __init__(self, og_interaction: Interaction, embed: Embed) -> None:
         super().__init__()
-        self.interaction = interaction
+        self.og_interaction = og_interaction
         self.embed = embed
 
     # Need a function to create data/embeds for pagination (testing purposes)
@@ -53,12 +62,12 @@ class ButtonView(View):
 
         Description: Callback function for the button initialized by decorator.
         """
-        await self.interaction.delete_original_response()
+        await self.og_interaction.delete_original_response()
         # Testing responses after deletion
         await interaction.response.defer()
 
         view = PaginationView(
-            interaction.user.id,
+            self.og_interaction.user.id,
             self.generate_data(25),
         )
         await interaction.followup.send(embed=view.data[0]["embed"], view=view)
