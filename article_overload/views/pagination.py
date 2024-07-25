@@ -98,7 +98,9 @@ class PaginationView(View):
         Description: Callback to update embed and page content.
         :Return: None
         """
-        await interaction.response.edit_message(embed=self.data[self.page]["embed"])
+        self.children[0].disabled = self.page < 1  # left arrow
+        self.children[1].disabled = self.page == len(self.data) - 1  # right arrow
+        await interaction.response.edit_message(embed=self.data[self.page]["embed"], view=self)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         """Interaction check callback.
