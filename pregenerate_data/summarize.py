@@ -58,12 +58,18 @@ class Article:
     def __init__(
         self,
         article_text_info: ArticleTextInfo,
-        article_selection_info: ArticleSelectionInfo,
-        article_context_info: ArticleContextInfo,
+        article_selection_info: ArticleSelectionInfo=None,
+        article_context_info: ArticleContextInfo=None,
     ) -> None:
         self.article_text_info = article_text_info
+
         self.article_selection_info = article_selection_info
+        if self.article_selection_info is None:
+            self.article_selection_info = ArticleSelectionInfo()
+
         self.article_context_info = article_context_info
+        if self.article_context_info is None:
+            self.article_context_info = ArticleContextInfo()
 
         self.sentence_options: list[str] = []
 
@@ -192,10 +198,6 @@ def get_summary(article_body: str) -> str:
 
 
 article_body_text = get_gpt_response("Generate an article based on cats that is under 300 words")
-article = Article(
-    ArticleTextInfo(article_body_text, get_summary(article_body_text)),
-    ArticleSelectionInfo(),
-    ArticleContextInfo(),
-)
+article = Article(ArticleTextInfo(article_body_text, get_summary(article_body_text)))
 article.write()
 print(article)
