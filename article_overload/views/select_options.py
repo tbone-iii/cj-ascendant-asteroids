@@ -7,11 +7,7 @@ from discord.ui import Button, Select, View, button
 class SelectOptions(Select):
     """Select menus class."""
 
-    def __init__(
-        self,
-        option_titles: list,
-        option_values: list,
-    ) -> None:
+    def __init__(self, option_titles: tuple | list, option_values: tuple | list) -> None:
         """Subclass of Select.
 
         Description: Initializes a subclass of a Select menu to allow for selection of values.
@@ -77,11 +73,7 @@ class SelectOptionsView(View):
             )
 
     @button(label="Complete", style=ButtonStyle.green, row=4)
-    async def submit(
-        self,
-        _: Interaction,
-        __: Button,
-    ) -> None:
+    async def submit(self, _: Interaction, __: Button) -> None:
         """Complete button.
 
         Description: Callback to check if a user has pressed submit to stop selection.
@@ -103,10 +95,7 @@ class SelectOptionsView(View):
         :Return: Boolean
         """
         if interaction.user.id != self.org_user:
-            await interaction.response.send_message(
-                "You can't click this!",
-                ephemeral=True,
-            )
+            await interaction.response.send_message("You can't click this!", ephemeral=True)
             return False
 
         self.clicked = [

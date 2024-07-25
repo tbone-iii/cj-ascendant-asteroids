@@ -1,11 +1,12 @@
 import datetime
 import json
+import secrets
 import sys
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import openai
-import secret
 
 openai.api_key = sys.argv[1]
 GPT_MODEL = "gpt-4"
@@ -44,11 +45,11 @@ class ArticleSelectionInfo:
 
 
 class ArticleTextInfo:
-    """Class info on article body and summery."""
+    """Class info on article body and summary."""
 
-    def __init__(self, body_text: str, summery: str) -> None:
+    def __init__(self, body_text: str, summary: str) -> None:
         self.body_text = body_text
-        self.summery = summery
+        self.summary = summary
 
 
 class Article:
@@ -64,18 +65,18 @@ class Article:
         self.article_selection_info = article_selection_info
         self.article_context_info = article_context_info
 
-        self.sentence_options = []
+        self.sentence_options: list[str] = []
 
         scanning = False
-        for char in list(self.article_text_info.summery):
-            if char in ("<", "["):
+        for char in list(self.article_text_info.summary):
+            if char in {"<", "["}:
                 if char == "[":
                     self.incorrect_option = len(self.sentence_options)
 
                 self.sentence_options.append("")
                 scanning = True
 
-            elif char in (">", "]"):
+            elif char in {">", "]"}:
                 scanning = False
 
             elif scanning:
@@ -105,9 +106,9 @@ Author: {self.article_context_info.author}
 {self.article_text_info.body_text}
 ----- TEXT BODY END -----
 
------ SUMMERY START -----
-{self.article_text_info.summery}
------ SUMMERY END -----
+----- SUMMARY START -----
+{self.article_text_info.summary}
+----- SUMMARY END -----
 
 ----- OPTIONS START -----
 {options_out}
@@ -121,7 +122,7 @@ Author: {self.article_context_info.author}
         articles.append(
             {
                 "body_text": self.article_text_info.body_text,
-                "summery": self.article_text_info.summery,
+                "summary": self.article_text_info.summary,
                 "url": self.article_context_info.url,
                 "topic": self.article_selection_info.topic,
                 "size": self.article_selection_info.size,
@@ -136,35 +137,36 @@ Author: {self.article_context_info.author}
             json.dump(articles, f)
 
     @staticmethod
-    def collect_articles() -> dict:
+    def collect_articles() -> list[dict]:
         """Collect all articles jsons from file."""
         with Path.open(JSON_LOCATION) as f:
             data = json.load(f)
             return list(data)
 
     @staticmethod
-    def create_article_with_json(data: json) -> "Article":
+    def create_article_with_json(data: dict[str, Any]) -> "Article":
         """Create an instance of Article with the given json data."""
+        year, month, day = data["date"].split("-")
         return Article(
-            data["body_text"],
-            data["summery"],
-            data["topic"],
-            data["size"],
-            datetime.datetime(data["date"], tzinfo=DEFAULT_TIMEZONE),
-            data["url"],
-            data["author"],
+            article_text_info=ArticleTextInfo(data["body_text"], data["summary"]),
+            article_selection_info=ArticleSelectionInfo(data["topic"], data["size"]),
+            article_context_info=ArticleContextInfo(
+                date=datetime.datetime(year=year, month=month, day=day, tzinfo=DEFAULT_TIMEZONE),
+                url=data["url"],
+                author=data["author"],
+            ),
         )
 
     @staticmethod
     def pick_random() -> "Article":
         """Pick and return a random Article type from the json saved list."""
         articles = Article.collect_articles()
-        picked_article = secret.choice(articles)
+        picked_article = secrets.choice(articles)
         return Article.create_article_with_json(picked_article)
 
 
 def get_gpt_response(prompt_text: str) -> str:
-    """Get a chatGPT input and output."""
+    """Get a ChatGPT input and output."""
     response = openai.chat.completions.create(
         model=GPT_MODEL,
         messages=[
@@ -172,15 +174,15 @@ def get_gpt_response(prompt_text: str) -> str:
         ],
     )
 
-    return response.choices[0].message.content
+    return response.choices[0].message.content or ""
 
 
-def get_summery(article_body: str) -> str:
+def get_summary(article_body: str) -> str:
     """Get a summary from body text."""
     return get_gpt_response(
         "Please summarize the following article in around facts, \
             each fact sentence should be no longer than 10 words, \
-            label 3 of these sentces with <> \
+            label 3 of these sentences with <> \
             (Please don't include bullet points or numbers in the brackets) \
             then add a sentence containing fake information, wrapped in [] instead\n \
             Please never but [] inside of <> or vise versa\n \
@@ -191,7 +193,7 @@ def get_summery(article_body: str) -> str:
 
 article_body_text = get_gpt_response("Generate an article based on cats that is under 300 words")
 article = Article(
-    ArticleTextInfo(article_body_text, get_summery(article_body_text)),
+    ArticleTextInfo(article_body_text, get_summary(article_body_text)),
     ArticleSelectionInfo(),
     ArticleContextInfo(),
 )

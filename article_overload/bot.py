@@ -23,7 +23,7 @@ class ArticleOverloadBot(commands.Bot):
         :Return: None
         """
         super().__init__(command_prefix="ao!", intents=INTENTS, owner_ids=OWNER_IDS)
-        self.unloaded_cogs = []
+        self.unloaded_cogs: list[str] = []
 
     def start_bot(self, token: str | None) -> None:
         """Start the bot.

@@ -55,7 +55,7 @@ class ArticleOverload(commands.Cog):
         embed = game.create_start_game_embed(player)
         return await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="end_game", description=CommandDescriptions.GAME_END)
+    @app_commands.command(name="end_game", description=CommandDescriptions.GAME_END.value)
     async def end_game(self, interaction: Interaction) -> None:
         """Bot command.
 

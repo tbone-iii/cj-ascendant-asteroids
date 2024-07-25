@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from itertools import batched
 
 from discord import ButtonStyle, Interaction, SelectOption
@@ -7,7 +8,7 @@ from discord.ui import Button, Select, View, button
 class PaginationSelect(Select):
     """Pagination select menu class."""
 
-    def __init__(self, data: list, full_data: list, page: int = 0) -> None:
+    def __init__(self, data: Iterable, full_data: list, page: int = 0) -> None:
         """Subclass of Select.
 
         Description: Initializes a subclass of a Select menu to allow for easy pagination.
@@ -61,9 +62,7 @@ class PaginationView(View):
         self.page = page
 
         for data_chunk in batched(data, self.PAGE_SIZE):
-            self.add_item(
-                PaginationSelect(data_chunk, self.data, page),
-            )
+            self.add_item(PaginationSelect(data_chunk, self.data, page))
 
     @button(emoji="<:left_arrow:1049429857488093275>", style=ButtonStyle.blurple)
     async def left_arrow(
@@ -108,9 +107,6 @@ class PaginationView(View):
         :Return: Boolean
         """
         if interaction.user.id != self.org_user:
-            await interaction.response.send_message(
-                "You can't click this!",
-                ephemeral=True,
-            )
+            await interaction.response.send_message("You can't click this!", ephemeral=True)
             return False
         return True
