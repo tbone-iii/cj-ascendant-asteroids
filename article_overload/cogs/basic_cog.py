@@ -3,7 +3,7 @@ from discord.ext import commands
 
 from article_overload.bot import ArticleOverloadBot
 from article_overload.mention_target import MentionTarget
-from article_overload.tools.desc import COMMAND_DESC
+from article_overload.tools.desc import CommandDescriptions
 from article_overload.tools.utils import create_success_embed, create_warning_embed
 from article_overload.views import ButtonView, ConfirmDeny, InputButton, PaginationView, SelectOptionsView
 from article_overload.views.confirm_deny import ConfirmDenyOptions
@@ -20,7 +20,7 @@ class Sample(commands.Cog):
         """
         self.client = client
 
-    @app_commands.command(name="ping", description=COMMAND_DESC["ping"])
+    @app_commands.command(name="ping", description=CommandDescriptions.PING.value)
     async def ping(self, interaction: Interaction) -> None:
         """Bot command.
 
@@ -29,7 +29,7 @@ class Sample(commands.Cog):
         """
         await interaction.response.send_message("pong")
 
-    @app_commands.command(name="create_embed", description=COMMAND_DESC["create_embed"])
+    @app_commands.command(name="create_embed", description=CommandDescriptions.CREATE_EMBED.value)
     async def create_embed(self, interaction: Interaction) -> None:
         """Bot command.
 
@@ -42,7 +42,7 @@ class Sample(commands.Cog):
 
     @app_commands.command(
         name="create_button_example",
-        description=COMMAND_DESC["create_button_example"],
+        description=CommandDescriptions.CREATE_BUTTON_EXAMPLE.value,
     )
     async def create_button(self, interaction: Interaction) -> None:
         """Bot command.
@@ -54,7 +54,7 @@ class Sample(commands.Cog):
 
     @app_commands.command(
         name="greet",
-        description=COMMAND_DESC["greet"],
+        description=CommandDescriptions.GREET.value,
     )
     async def greet(
         self,
@@ -77,7 +77,7 @@ class Sample(commands.Cog):
         mention_value = " @everyone" if mention_target == MentionTarget.EVERYONE else ""
         await interaction.response.send_message(f"Greetings{mention_value}!")
 
-    @app_commands.command(name="confirm_deny", description=COMMAND_DESC["confirm_deny"])
+    @app_commands.command(name="confirm_deny", description=CommandDescriptions.CONFIRM_DENY.value)
     async def confirm_deny(self, interaction: Interaction) -> None:
         """Bot command.
 
@@ -124,7 +124,7 @@ class Sample(commands.Cog):
                 view=None,
             )
 
-    @app_commands.command(name="user_input", description=COMMAND_DESC["user_input"])
+    @app_commands.command(name="user_input", description=CommandDescriptions.USER_INPUT.value)
     async def user_input(self, interaction: Interaction) -> None:
         """Bot command.
 
@@ -164,7 +164,7 @@ class Sample(commands.Cog):
                 view=None,
             )
 
-    @app_commands.command(name="select_stuff", description=COMMAND_DESC["select_stuff"])
+    @app_commands.command(name="select_stuff", description=CommandDescriptions.SELECT_STUFF.value)
     async def select_stuff(self, interaction: Interaction) -> None:
         """Bot command.
 
@@ -183,7 +183,7 @@ class Sample(commands.Cog):
 
         await interaction.edit_original_response(content="You selected:\n" + "\n".join(view.clicked), view=None)
 
-    @app_commands.command(name="pagination", description=COMMAND_DESC["pagination"])
+    @app_commands.command(name="pagination", description=CommandDescriptions.PAGINATION.value)
     async def pagination(self, interaction: Interaction) -> None:
         """Bot command.
 
