@@ -24,7 +24,7 @@ class ArticleRecord(Base):
     """
 
     __tablename__ = TableName.ARTICLE.value
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
     url: Mapped[str] = mapped_column(nullable=False)
     body_text: Mapped[str] = mapped_column(nullable=False)
     summary: Mapped[str] = mapped_column(nullable=False)
