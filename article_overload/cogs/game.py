@@ -3,7 +3,7 @@ from discord.ext import commands
 from utils.game_classes import Game, Player
 
 from article_overload.bot import ArticleOverloadBot
-from article_overload.tools.desc import COMMAND_DESC
+from article_overload.tools.desc import CommandDescriptions
 from article_overload.tools.utils import create_warning_embed
 
 
@@ -21,7 +21,7 @@ class ArticleOverload(commands.Cog):
 
     @app_commands.command(
         name="article_overload",
-        description=COMMAND_DESC["game_start"],
+        description=CommandDescriptions.GAME_START.value,
     )
     async def article_overload(self, interaction: Interaction) -> None:
         """Bot command.
@@ -55,7 +55,7 @@ class ArticleOverload(commands.Cog):
         embed = game.create_start_game_embed(player)
         return await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="end_game", description=COMMAND_DESC["game_end"])
+    @app_commands.command(name="end_game", description=CommandDescriptions.GAME_END)
     async def end_game(self, interaction: Interaction) -> None:
         """Bot command.
 
