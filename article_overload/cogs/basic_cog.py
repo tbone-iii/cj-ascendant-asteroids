@@ -210,6 +210,7 @@ class Sample(commands.Cog):
     @app_commands.command(name="purge_msgs", description="Delete bot messages")
     async def purge_msgs(self, interaction: Interaction) -> None:
         """Delete bot messages from channel."""
+        await interaction.response.defer()
         await interaction.channel.purge(limit=100, check=lambda msg: msg.author.bot)
 
 
