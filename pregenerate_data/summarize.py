@@ -162,7 +162,10 @@ Author: {self.article_context_info.author}
         year, month, day = data["date"].split("-")
         return Article(
             article_text_info=ArticleTextInfo(
-                data["body_text"], data["summary"], data["sentence_options"], data["incorrect_option"],
+                data["body_text"],
+                data["summary"],
+                data["sentence_options"],
+                data["incorrect_option"],
             ),
             article_selection_info=ArticleSelectionInfo(data["topic"], data["size"]),
             article_context_info=ArticleContextInfo(
@@ -178,4 +181,3 @@ Author: {self.article_context_info.author}
         articles = Article.collect_articles()
         picked_article = secrets.choice(articles)
         return Article.create_article_with_json(picked_article)
-
