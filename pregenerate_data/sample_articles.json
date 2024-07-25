@@ -1,0 +1,14 @@
+{
+    "articles": [
+        {
+            "body_text": "This is the content of article 1",
+            "summary": "sentence summary 1",
+            "url": "https://www.google.com"
+        },
+        {
+            "body_text": "This is the content of article 2",
+            "summary": "sentence summary 2",
+            "url": "https://www.google.com"
+        }
+    ]
+}

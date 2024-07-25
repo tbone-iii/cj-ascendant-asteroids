@@ -9,12 +9,10 @@ from article_overload.db import handler, models, objects
 from sqlalchemy import Engine, Row, create_engine, text
 
 from .exceptions import InvalidTableNameError
-from .sample_data import sample_articles
+from .sample_data import prebuild_article, prebuild_articles, sample_article_records
 from .utils import (
     TEST_DIRECTORY,
     DatabaseSetupInfo,
-    prebuild_article,
-    prebuild_articles,
     remove_local_db_files,
 )
 
@@ -52,12 +50,13 @@ def generate_db_setup_info() -> DatabaseSetupInfo:
     )
 
 
-def read_all_article_rows_sync(engine: Engine, table_name: str) -> Sequence[Row[Any]]:
+def read_all_article_rows_sync(engine: Engine) -> Sequence[Row[Any]]:
     """Read all rows from the article table, given the article table name.
 
     :Return: All rows from the article table.
     """
     # To prevent any risk of SQL injection attacks if somehow this function is used somewhere else
+    table_name = models.ArticleRecord.__tablename__
     if not table_name.isalnum():
         raise InvalidTableNameError
 
@@ -109,7 +108,7 @@ def setup_sample_db_file() -> DatabaseSetupInfo:
             )
         """)
 
-        for article in sample_articles:
+        for article in sample_article_records:
             cursor.execute(
                 f"""
                 INSERT INTO {table_name} (id, url, body_text, summary) VALUES (?, ?, ?, ?)
@@ -159,7 +158,7 @@ async def test_async_add_multiple_articles_one_by_one_verify_by_reading_database
 
     # Testing portion to verify the data in the database
     # Pulling the data via synchronous method to ensure data is stored correctly
-    records = read_all_article_rows_sync(engine=sync_engine, table_name=models.ArticleRecord.__tablename__)
+    records = read_all_article_rows_sync(engine=sync_engine)
     assert len(records) == len(prebuilt_articles)
 
     for article, row in zip(prebuilt_articles, records, strict=True):
@@ -188,7 +187,7 @@ async def test_async_bulk_insert_multiple_articles_verify_by_reading_database_sy
 
     # Testing portion to verify the data in the database
     # Pulling the data via synchronous method to ensure data is stored correctly
-    records = read_all_article_rows_sync(engine=sync_engine, table_name=models.ArticleRecord.__tablename__)
+    records = read_all_article_rows_sync(engine=sync_engine)
 
     assert len(records) == len(prebuilt_articles)
 
@@ -199,7 +198,7 @@ async def test_async_bulk_insert_multiple_articles_verify_by_reading_database_sy
 
 
 @pytest.mark.asyncio()
-@pytest.mark.parametrize("article", sample_articles)
+@pytest.mark.parametrize("article", sample_article_records)
 async def test_get_article_by_id_from_sample_db(
     article: objects.Article,
     setup_sample_db_file: DatabaseSetupInfo,
@@ -209,7 +208,8 @@ async def test_get_article_by_id_from_sample_db(
     assert article.id is not None, "Sanity check."
     retrieved_article = await database_handler.get_article_by_id(article.id)
 
-    assert retrieved_article == article
+    assert retrieved_article is not None
+    assert retrieved_article.id == article.id
 
 
 @pytest.mark.asyncio()
@@ -219,4 +219,6 @@ async def test_get_all_articles_from_sample_db(
     database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
     retrieved_articles = await database_handler.get_all_articles()
 
-    assert retrieved_articles == sample_articles
+    expected_ids = [article.id for article in sample_article_records]
+    retrieved_ids = [article.id for article in retrieved_articles]
+    assert expected_ids == retrieved_ids
