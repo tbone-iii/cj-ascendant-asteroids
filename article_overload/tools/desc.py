@@ -1,4 +1,4 @@
-from enum import Enum
+from discord import Enum
 
 
 class CommandDescriptions(Enum):
