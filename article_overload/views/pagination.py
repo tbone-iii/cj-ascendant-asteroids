@@ -1,3 +1,5 @@
+from itertools import batched
+
 from discord import ButtonStyle, Interaction, SelectOption
 from discord.ui import Button, Select, View, button
 
@@ -58,9 +60,9 @@ class PaginationView(View):
         self.data = data
         self.page = page
 
-        for i in range(0, len(data), self.PAGE_SIZE):
+        for data_chunk in batched(data, self.PAGE_SIZE):
             self.add_item(
-                PaginationSelect(data[i : i + self.PAGE_SIZE], self.data, page),
+                PaginationSelect(data_chunk, self.data, page),
             )
 
     @button(emoji="<:left_arrow:1049429857488093275>", style=ButtonStyle.blurple)

@@ -1,3 +1,5 @@
+from itertools import batched
+
 from discord import ButtonStyle, Interaction, SelectOption
 from discord.ui import Button, Select, View, button
 
@@ -62,11 +64,15 @@ class SelectOptionsView(View):
         self.clicked: list[str] = []
         self.min_val, self.max_val = value_range
 
-        for i in range(0, len(option_titles), self.MAX_OPTIONS_PER_SELECT):
+        for option_titles_chunk, option_values_chunk in zip(
+            batched(option_titles, self.MAX_OPTIONS_PER_SELECT),
+            batched(option_values, self.MAX_OPTIONS_PER_SELECT),
+            strict=False,
+        ):
             self.add_item(
                 SelectOptions(
-                    option_titles[i : i + self.MAX_OPTIONS_PER_SELECT],
-                    option_values[i : i + self.MAX_OPTIONS_PER_SELECT],
+                    option_titles_chunk,
+                    option_values_chunk,
                 ),
             )
 
