@@ -1,1 +1,11 @@
-{"basic_cog": {"enabled": true}, "error": {"enabled": true}, "game": {"enabled": true}}
+{
+    "basic_cog": {
+        "enabled": true
+    },
+    "error": {
+        "enabled": true
+    },
+    "game": {
+        "enabled": true
+    }
+}
