@@ -73,14 +73,24 @@ sample_articles = [
         url="https://example2.com",
         body_text="This is a long body text. " * 100,
         summary="A new car. A new house. A new chair.",
-        questions=["Fact A", "Fact B", "Fact C", "Fake Fact"],
-        incorrect_option_index=3,
+        questions=["Fact A", "Fake Fact", "Fact C", "Fact D"],
+        incorrect_option_index=1,
         title="Example Title",
         topic="Sports",
         size="Large",
         author="Author",
         date_published=datetime(2021, 3, 3, tzinfo=UTC),
     ),
+]
+
+sample_true_statements = [
+    ["Fact A", "Fact B", "Fact C"],
+    ["Fact A", "Fact C", "Fact D"],
+]
+
+sample_false_statements = [
+    "Fake Fact",
+    "Fake Fact",
 ]
 
 sample_size_records = [

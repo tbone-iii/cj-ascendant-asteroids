@@ -24,3 +24,7 @@ class DatabaseObjectNotProperlyInitializedError(Exception):
 
 class SizeRecordNotFoundError(Exception):
     """For when a size record is not found."""
+
+
+class NoArticlesFoundError(Exception):
+    """For when no articles are found."""
