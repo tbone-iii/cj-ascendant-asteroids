@@ -1,16 +1,16 @@
 import datetime
 import json
+import os
 import secrets
-import sys
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-import openai
+from dotenv import load_dotenv
 
-openai.api_key = sys.argv[1]
-GPT_MODEL = "gpt-4"
-NEWS_API_KEY = "589889c3716740ca8fc4c9c6413bac96"
+load_dotenv()
+
+NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 NEWS_SITE_RSS_URL = "https://finance.yahoo.com/rss/"
 TOOLONG_DEBUG_SIZE = 80
 DEFAULT_TIMEZONE = ZoneInfo("America/Los_Angeles")
@@ -25,7 +25,7 @@ class ArticleContextInfo:
         self,
         date: datetime.datetime | None = None,
         url: str = "",
-        author: str = GPT_MODEL,
+        author: str = "gpt",
     ) -> None:
         if date is None:
             self.date = datetime.datetime.now(tz=DEFAULT_TIMEZONE)
@@ -47,9 +47,35 @@ class ArticleSelectionInfo:
 class ArticleTextInfo:
     """Class info on article body and summary."""
 
-    def __init__(self, body_text: str, summary: str) -> None:
+    def __init__(
+        self,
+        body_text: str,
+        summary: str,
+        sentence_options: list[str] | None = None,
+        incorrect_option: int | None = None,
+    ) -> None:
         self.body_text = body_text
         self.summary = summary
+
+        self.sentence_options = sentence_options
+        self.incorrect_option = incorrect_option
+        if not isinstance(self.sentence_options, list):
+            self.sentence_options = []
+            self.incorrect_option = -1
+            scanning = False
+            for char in list(self.summary):
+                if char in {"<", "["}:
+                    if char == "[":
+                        self.incorrect_option = len(self.sentence_options)
+
+                    self.sentence_options.append("")
+                    scanning = True
+
+                elif char in {">", "]"}:
+                    scanning = False
+
+                elif scanning:
+                    self.sentence_options[-1] += char
 
 
 class Article:
@@ -58,34 +84,19 @@ class Article:
     def __init__(
         self,
         article_text_info: ArticleTextInfo,
-        article_selection_info: ArticleSelectionInfo,
-        article_context_info: ArticleContextInfo,
+        article_selection_info: ArticleSelectionInfo | None = None,
+        article_context_info: ArticleContextInfo | None = None,
     ) -> None:
         self.article_text_info = article_text_info
-        self.article_selection_info = article_selection_info
-        self.article_context_info = article_context_info
-
-        self.sentence_options: list[str] = []
-
-        scanning = False
-        for char in list(self.article_text_info.summary):
-            if char in {"<", "["}:
-                if char == "[":
-                    self.incorrect_option = len(self.sentence_options)
-
-                self.sentence_options.append("")
-                scanning = True
-
-            elif char in {">", "]"}:
-                scanning = False
-
-            elif scanning:
-                self.sentence_options[-1] += char
+        self.article_selection_info = article_selection_info or ArticleSelectionInfo()
+        self.article_context_info = article_context_info or ArticleContextInfo()
 
     def __repr__(self) -> str:
         options_out = ""
-        for num, sentence in enumerate(self.sentence_options):
-            if num == self.incorrect_option:
+
+        sentence_options = self.article_text_info.sentence_options or []
+        for num, sentence in enumerate(sentence_options):
+            if num == self.article_text_info.incorrect_option:
                 options_out += f"NOT TRUE -> {num}: {sentence}"
             else:
                 options_out += f"{num}: {sentence}"
@@ -119,22 +130,28 @@ Author: {self.article_context_info.author}
         """Add this article to the json file list of articles."""
         articles = Article.collect_articles()
 
+        sentence_options = self.article_text_info.sentence_options or []
+        print(len(sentence_options))
+
+        year = self.article_context_info.date.year
+        month = self.article_context_info.date.month
+        day = self.article_context_info
         articles.append(
             {
                 "body_text": self.article_text_info.body_text,
                 "summary": self.article_text_info.summary,
+                "questions": self.article_text_info.sentence_options,
+                "incorrect_option_index": self.article_text_info.incorrect_option,
                 "url": self.article_context_info.url,
                 "topic": self.article_selection_info.topic,
                 "size": self.article_selection_info.size,
-                "date": f"{self.article_context_info.date.year}- \
-                    {self.article_context_info.date.month}- \
-                    {self.article_context_info.date.day}",
+                "date_published": f"{year}-{month}-{day}",
                 "author": self.article_context_info.author,
             },
         )
 
         with Path.open(JSON_LOCATION, "w") as f:
-            json.dump(articles, f)
+            json.dump(articles, f, indent=4)
 
     @staticmethod
     def collect_articles() -> list[dict]:
@@ -148,10 +165,15 @@ Author: {self.article_context_info.author}
         """Create an instance of Article with the given json data."""
         year, month, day = data["date"].split("-")
         return Article(
-            article_text_info=ArticleTextInfo(data["body_text"], data["summary"]),
+            article_text_info=ArticleTextInfo(
+                data["body_text"],
+                data["summary"],
+                data["questions"],
+                data["incorrect_option"],
+            ),
             article_selection_info=ArticleSelectionInfo(data["topic"], data["size"]),
             article_context_info=ArticleContextInfo(
-                date=datetime.datetime(year=year, month=month, day=day, tzinfo=DEFAULT_TIMEZONE),
+                date=datetime.datetime(year=int(year), month=int(month), day=int(day), tzinfo=DEFAULT_TIMEZONE),
                 url=data["url"],
                 author=data["author"],
             ),
@@ -163,39 +185,3 @@ Author: {self.article_context_info.author}
         articles = Article.collect_articles()
         picked_article = secrets.choice(articles)
         return Article.create_article_with_json(picked_article)
-
-
-def get_gpt_response(prompt_text: str) -> str:
-    """Get a ChatGPT input and output."""
-    response = openai.chat.completions.create(
-        model=GPT_MODEL,
-        messages=[
-            {"role": "system", "content": prompt_text},
-        ],
-    )
-
-    return response.choices[0].message.content or ""
-
-
-def get_summary(article_body: str) -> str:
-    """Get a summary from body text."""
-    return get_gpt_response(
-        "Please summarize the following article in around facts, \
-            each fact sentence should be no longer than 10 words, \
-            label 3 of these sentences with <> \
-            (Please don't include bullet points or numbers in the brackets) \
-            then add a sentence containing fake information, wrapped in [] instead\n \
-            Please never but [] inside of <> or vise versa\n \
-    "
-        + article_body,
-    )
-
-
-article_body_text = get_gpt_response("Generate an article based on cats that is under 300 words")
-article = Article(
-    ArticleTextInfo(article_body_text, get_summary(article_body_text)),
-    ArticleSelectionInfo(),
-    ArticleContextInfo(),
-)
-article.write()
-print(article)

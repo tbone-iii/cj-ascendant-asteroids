@@ -1,9 +1,12 @@
+from collections.abc import Sequence
 from typing import TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from .models import ArticleRecord, init_database
+from article_overload.exceptions import SizeRecordNotFoundError
+
+from .models import ArticleRecord, QuestionRecord, SizeRecord, init_database
 from .objects import Article
 
 T = TypeVar("T")
@@ -31,6 +34,22 @@ class DatabaseHandler:
         self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
         return self
 
+    async def get_size_record_by_size(self, size: str, session: AsyncSession) -> SizeRecord:
+        """Get size record by size.
+
+        If it doesn't exist, create a new entry to the database and return it.
+
+        :Return: `SizeRecord` or `None`
+        """
+        result = await session.execute(select(SizeRecord).where(SizeRecord.size == size))
+        size_record = result.scalars().first()
+
+        if size_record is None:
+            size_record = SizeRecord(size=size)
+            session.add(size_record)
+            await session.flush()
+        return size_record
+
     async def add_article(self, article: Article) -> Article:
         """Add `Article` to database. Return the updated `Article`.
 
@@ -40,7 +59,8 @@ class DatabaseHandler:
 
         async with self.session_factory() as session:
             async with session.begin():
-                article_record = article.create_article_record()
+                size_record = await self.get_size_record_by_size(article.size, session)
+                article_record = article.create_article_record(size_record)
                 session.add(article_record)
 
             return article.update_id_from_article_record(article_record)
@@ -53,7 +73,11 @@ class DatabaseHandler:
         """
         async with self.session_factory() as session:
             async with session.begin():
-                article_records = [article.create_article_record() for article in articles]
+                size_records = [await self.get_size_record_by_size(article.size, session) for article in articles]
+                article_records = [
+                    article.create_article_record(size_record)
+                    for article, size_record in zip(articles, size_records, strict=False)
+                ]
                 session.add_all(article_records)
 
             return [
@@ -62,7 +86,7 @@ class DatabaseHandler:
             ]
 
     async def get_article_by_id(self, article_id: int) -> Article | None:
-        """Get article by ID.
+        """Get `Article` by ID.
 
         :Return: `Article` or `None`
         """
@@ -71,7 +95,39 @@ class DatabaseHandler:
 
             if article_record is None:
                 return None
-            return Article.create_from_article_record(article_record)
+
+            question_records = await self.get_question_records_from_article_record(article_record, session)
+            size_record = await self.get_size_records_from_article_record(article_record, session)
+
+            return Article.create_from_article_record(
+                article_record=article_record,
+                question_records=list(question_records),
+                size_record=size_record,
+            )
+
+    @staticmethod
+    async def get_question_records_from_article_record(
+        article_record: ArticleRecord,
+        session: AsyncSession,
+    ) -> Sequence[QuestionRecord]:
+        """Get question record from article record.
+
+        :Return: `list[QuestionRecord]`
+        """
+        result = await session.execute(article_record.questions.select())
+        return result.scalars().all()
+
+    @staticmethod
+    async def get_size_records_from_article_record(article_record: ArticleRecord, session: AsyncSession) -> SizeRecord:
+        """Get size record from article records.
+
+        :Return: `SizeRecord` or `None`
+        """
+        size_record = await session.get(SizeRecord, article_record.size_id)
+        if size_record is None:
+            raise SizeRecordNotFoundError
+
+        return size_record
 
     async def get_all_articles(self) -> list[Article]:
         """Get all articles.
@@ -82,7 +138,27 @@ class DatabaseHandler:
         :Return: `list[Article]`
         """
         async with self.session_factory() as session:
-            article_records_chunked_iterator = await session.execute(select(ArticleRecord))
-            article_records_tuples = article_records_chunked_iterator.all()
-            article_records = [record[0] for record in article_records_tuples]
-            return [Article.create_from_article_record(article_record) for article_record in article_records]
+            result = await session.execute(select(ArticleRecord))
+            article_records = result.scalars().all()
+            questions_records = [
+                await self.get_question_records_from_article_record(article_record, session)
+                for article_record in article_records
+            ]
+            size_records = [
+                await self.get_size_records_from_article_record(article_record, session)
+                for article_record in article_records
+            ]
+
+            return [
+                Article.create_from_article_record(
+                    article_record=article_record,
+                    question_records=list(question_records),
+                    size_record=size_record,
+                )
+                for article_record, question_records, size_record in zip(
+                    article_records,
+                    questions_records,
+                    size_records,
+                    strict=True,
+                )
+            ]

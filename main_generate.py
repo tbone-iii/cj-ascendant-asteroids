@@ -26,9 +26,11 @@ def main() -> None:
 
     # The underlying schema of the table may have changed, thus drop and renew
     sync_engine = create_engine(database_url.replace("aiosqlite", "pysqlite"))
+    tables_to_drop = [TableName.ARTICLE, TableName.QUESTION, TableName.SIZE]
     with sync_engine.connect() as connection:
-        statement = f"DROP TABLE IF EXISTS {TableName.ARTICLE.value}"
-        connection.execute(text(statement))
+        for table in tables_to_drop:
+            statement = f"DROP TABLE IF EXISTS {table}"
+            connection.execute(text(statement))
 
     database_handler = asyncio.run(DatabaseHandler.create(database_url))
     asyncio.run(load_articles_to_database(path, database_handler=database_handler))

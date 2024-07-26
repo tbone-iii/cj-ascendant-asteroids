@@ -20,3 +20,7 @@ class DatabaseSessionNotInitializedError(Exception):
 
 class DatabaseObjectNotProperlyInitializedError(Exception):
     """For when the database object is not properly initialized."""
+
+
+class SizeRecordNotFoundError(Exception):
+    """For when a size record is not found."""

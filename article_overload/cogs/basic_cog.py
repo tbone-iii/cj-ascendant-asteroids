@@ -1,4 +1,15 @@
-from discord import Embed, Interaction, app_commands
+from typing import Any
+
+from discord import (
+    DiscordException,
+    Embed,
+    Interaction,
+    StageChannel,
+    TextChannel,
+    Thread,
+    VoiceChannel,
+    app_commands,
+)
 from discord.ext import commands
 
 from article_overload.bot import ArticleOverloadBot
@@ -7,6 +18,8 @@ from article_overload.tools.desc import CommandDescriptions
 from article_overload.tools.utils import create_success_embed, create_warning_embed
 from article_overload.views import ButtonView, ConfirmDeny, InputButton, PaginationView, SelectOptionsView
 from article_overload.views.confirm_deny import ConfirmDenyOptions
+
+InteractionChannel = Any
 
 
 class Sample(commands.Cog):
@@ -206,6 +219,17 @@ class Sample(commands.Cog):
         )
         await interaction.followup.send(embed=Embed(title="Page through stuff"), view=view)
         await view.wait()
+
+    @app_commands.command(name="purge_msgs", description="Delete bot messages")
+    async def purge_msgs(self, interaction: Interaction) -> None:
+        """Delete bot messages from channel."""
+        await interaction.response.defer()
+
+        # Check if the interaction channel is a valid channel type for purging
+        if not isinstance(interaction.channel, VoiceChannel | StageChannel | TextChannel | Thread):
+            raise DiscordException
+
+        await interaction.channel.purge(limit=100, check=lambda msg: msg.author.bot)
 
 
 async def setup(client: ArticleOverloadBot) -> None:

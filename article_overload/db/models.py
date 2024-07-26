@@ -1,16 +1,18 @@
-from enum import Enum
+from dataclasses import dataclass
+from datetime import datetime
 
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import ForeignKey
 from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncEngine, create_async_engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, WriteOnlyMapped, mapped_column, relationship
 
 
-class TableName(Enum):
+@dataclass(frozen=True)
+class TableName:
     """Enumeration of table names for SQLAlchemy ORM."""
 
     ARTICLE = "article"
-    SUMMARY = "summary"
-    FAKE_FACT = "fake_fact"
+    QUESTION = "question"
+    SIZE = "size"
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -23,35 +25,50 @@ class ArticleRecord(Base):
     Includes details like URL and summary.
     """
 
-    __tablename__ = TableName.ARTICLE.value
-    id: Mapped[int] = mapped_column(primary_key=True)
+    __tablename__ = TableName.ARTICLE
+    id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
     url: Mapped[str] = mapped_column(nullable=False)
     body_text: Mapped[str] = mapped_column(nullable=False)
+    title: Mapped[str] = mapped_column(nullable=False)
+    author: Mapped[str] = mapped_column(nullable=False)
+    incorrect_option_index: Mapped[int] = mapped_column(nullable=False)
     summary: Mapped[str] = mapped_column(nullable=False)
+    date_published: Mapped[datetime]
+    topic: Mapped[str]
+    questions: WriteOnlyMapped["QuestionRecord"] = relationship(
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    size_id: Mapped[int] = mapped_column(ForeignKey(f"{TableName.SIZE}.id"), nullable=False)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(id={self.id}, url={self.url})"
 
 
-class SummaryRecord(Base):
+class QuestionRecord(Base):
     """Summary model for SQLAlchemy ORM.
 
     Includes details like the summary text and the article ID.
     """
 
-    __tablename__ = TableName.SUMMARY.value
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    article_id = Column(Integer, ForeignKey("article.id"), nullable=False)
-    summary = Column(String, nullable=False)
+    __tablename__ = TableName.QUESTION
+    id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
+    article_id: Mapped[int] = mapped_column(ForeignKey(f"{TableName.ARTICLE}.id"), nullable=False)
+    question: Mapped[str] = mapped_column(nullable=False)
 
 
-class FakeFactRecord(Base):
-    """Fake Fact model for SQLAlchemy ORM.
+class SizeRecord(Base):
+    """Size model for SQLAlchemy ORM.
 
-    Includes details like the fake fact text and the article ID.
+    Includes details like the size of the article. These are categories like "small", "medium", or "large".
     """
 
-    __tablename__ = TableName.FAKE_FACT.value
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    article_id = Column(Integer, ForeignKey("article.id"), nullable=False)
-    fake_fact = Column(String, nullable=False)
+    __tablename__ = TableName.SIZE
+    id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
+    size: Mapped[str] = mapped_column(nullable=False, unique=True)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(id={self.id}, size={self.size})"
 
 
 async def init_database(database_url: str) -> AsyncEngine:
