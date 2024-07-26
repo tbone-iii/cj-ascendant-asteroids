@@ -72,10 +72,81 @@ class ArticleOverload(commands.Cog):
             )
 
         game.end_game()
+        duration = game.get_game_duration()
         self.games.pop(interaction.user.id)
 
-        return await interaction.response.send_message("Game ended!")
+        return await interaction.response.send_message(f"Game ended! Duration: {duration}")
 
+    # ===================================================================
+    # Below commands are meant to demo the Game mechanics. In production,
+    # this should be bound by the Discord UI
+    # ===================================================================
+    @app_commands.command(name="show_game_time", description="Shows the current game duration.")
+    async def show_game_time(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Shows the current game duration.
+        :Return: None
+        """
+        game = self.games.get(interaction.user.id)
+        if game is None:
+            return await interaction.response.send_message("Game not found!", ephemeral=True)
+        duration = game.get_game_duration()
+        return await interaction.response.send_message(f"Current game duration: {duration}")
+
+    @app_commands.command(name="increment_score", description="Increments the player's score by a given value.")
+    async def increment_score(self, interaction: Interaction, points: int) -> None:
+        """Bot command.
+
+        Description: Increments the player's score by a given value.
+        :Return: None
+        """
+        game = self.games.get(interaction.user.id)
+        if game is None:
+            return await interaction.response.send_message("Game not found!", ephemeral=True)
+        player = game.get_player(interaction.user.id)
+        if player is None:
+            return await interaction.response.send_message("Player not found!", ephemeral=True)
+        player.update_score(points)
+        return await interaction.response.send_message(f"Score incremented! New score: {player.get_score()}")
+
+    @app_commands.command(name="increase_abilities_meter", description="Increases player's ability meter at value")
+    async def increase_abilities_meter(self, interaction: Interaction, value: int) -> None:
+        """Bot command.
+
+        Description: Increases the player's abilities meter by a given value.
+        :Return: None
+        """
+        game = self.games.get(interaction.user.id)
+        if game is None:
+            return await interaction.response.send_message("Game not found!", ephemeral=True)
+        player = game.get_player(interaction.user.id)
+        if player is None:
+            return await interaction.response.send_message("Player not found!", ephemeral=True)
+        new_ability = player.update_abilities_meter(value)
+        meter_percentage = player.get_abilities_meter_percentage()
+        if new_ability:
+            return await interaction.response.send_message(
+                f"Fully Powered up! Got {new_ability.value} ability! Abilities meter now reset to {meter_percentage}%",
+            )
+        return await interaction.response.send_message(f"Abilities meter increased! Now at {meter_percentage}%")
+
+    @app_commands.command(name="show_abilities", description="Shows the player's current abilities.")
+    async def show_abilities(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Shows the player's current abilities.
+        :Return: None
+        """
+        game = self.games.get(interaction.user.id)
+        if game is None:
+            return await interaction.response.send_message("Game not found!", ephemeral=True)
+        player = game.get_player(interaction.user.id)
+        if player is None:
+            return await interaction.response.send_message("Player not found!", ephemeral=True)
+        abilities = player.get_abilities()
+        abilities_list = ", ".join([ability.name for ability in abilities])
+        return await interaction.response.send_message(f"Current abilities: {abilities_list}")
 
 async def setup(client: ArticleOverloadBot) -> None:
     """Set up command.

@@ -57,6 +57,8 @@ class Player:
         Return the player's abilities meter.
     update_abilities_meter(value: int) -> None:
         Update the player's abilities meter.
+    get_abilities_meter_percentage -> int:
+        Get the player's ability meter capacity in %
     reset_abilities_meter() -> None:
         Reset the player's abilities meter.
 
@@ -179,13 +181,19 @@ class Player:
         """Get the value of player's ability meter."""
         return self.abilities_meter
 
-    def update_abilities_meter(self, value: int) -> None:
-        """Update the value of player's ability meter."""
+    def update_abilities_meter(self, value: int) -> AbilityType | None:
+        """Update the abilities meter and return the new ability if threshold is reached."""
         self.abilities_meter += value
         if self.abilities_meter >= self.abilities_threshold:
             self.abilities_meter = 0
-            # Use secrets library to address Ruff linter's requests
-            self.add_ability(secrets.choice(list(AbilityType)))
+            new_ability = secrets.choice(list(AbilityType))
+            self.add_ability(new_ability)
+            return new_ability
+        return None
+
+    def get_abilities_meter_percentage(self) -> int:
+        """Get the meter percentage obtained and return its value."""
+        return int((self.abilities_meter / self.abilities_threshold) * 100)
 
     def reset_abilities_meter(self) -> None:
         """Reset the abilities meter."""
@@ -299,9 +307,10 @@ class Game:
 
     def get_game_duration(self) -> str:
         """Return the duration of the game as a formatted string."""
-        if self.state != "ended":
-            return "Game is still in progress."
-        duration = self.end_time - self.start_time
+        if self.state == "not_started":
+            return "Game has not started."
+
+        duration = time.time() - self.start_time
         minutes, seconds = divmod(duration, 60)
         return f"{int(minutes)} minutes {int(seconds)} seconds"
 
