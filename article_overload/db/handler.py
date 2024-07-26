@@ -3,8 +3,9 @@ from typing import TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.sql.expression import func
 
-from article_overload.exceptions import SizeRecordNotFoundError
+from article_overload.exceptions import NoArticlesFoundError, SizeRecordNotFoundError
 
 from .models import ArticleRecord, QuestionRecord, SizeRecord, init_database
 from .objects import Article
@@ -162,3 +163,24 @@ class DatabaseHandler:
                     strict=True,
                 )
             ]
+
+    async def get_random_article(self) -> Article:
+        """Get a random article.
+
+        :Return: `Article`
+        """
+        async with self.session_factory() as session:
+            result = await session.execute(select(ArticleRecord).order_by(func.random()).limit(1))
+            article_record = result.scalars().first()
+
+            if article_record is None:
+                raise NoArticlesFoundError
+
+            question_records = await self.get_question_records_from_article_record(article_record, session)
+            size_record = await self.get_size_records_from_article_record(article_record, session)
+
+            return Article.create_from_article_record(
+                article_record=article_record,
+                question_records=list(question_records),
+                size_record=size_record,
+            )

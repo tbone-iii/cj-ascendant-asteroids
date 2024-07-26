@@ -14,6 +14,7 @@ class CommandDescriptions(Enum):
     PAGINATION = "Flip through pages"
     GAME_START = "Starts the game."
     GAME_END = "Ends the game."
+    CREATE_RANDOM_ARTICLE_EMBED = "Creates a random article embed."
 
 
 class CommandOptionDescriptions(Enum):
