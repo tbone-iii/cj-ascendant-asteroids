@@ -1,6 +1,7 @@
 from discord import Interaction, app_commands
 from discord.ext import commands
-from utils.game_classes import Game, Player
+from utils.constants import ARTICLE_TIMER
+from utils.game_classes import AbilityType, Game, Player
 
 from article_overload.bot import ArticleOverloadBot
 from article_overload.tools.desc import CommandDescriptions
@@ -94,7 +95,20 @@ class ArticleOverload(commands.Cog):
         duration = game.get_game_duration()
         return await interaction.response.send_message(f"Current game duration: {duration}")
 
-    @app_commands.command(name="start_new_article_challenge", description="Starts a 15-second timer to answer.")
+    @app_commands.command(name="show_article_timer", description="Shows the current article timer.")
+    async def show_article_timer(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Shows the current article timer.
+        :Return: None
+        """
+        game = self.games.get(interaction.user.id)
+        if game is None:
+            return await interaction.response.send_message("Game not found!", ephemeral=True)
+        timer = game.get_article_timer()
+        return await interaction.response.send_message(f"Remaining time: {timer:.2f} seconds")
+
+    @app_commands.command(name="start_new_article_challenge", description="Starts an article countdown.")
     async def start_new_article_challenge(self, interaction: Interaction) -> None:
         """Bot command.
 
@@ -106,7 +120,7 @@ class ArticleOverload(commands.Cog):
             return await interaction.response.send_message("Game not found!", ephemeral=True)
         game.reset_article_timer()
         game.start_article_timer()
-        return await interaction.response.send_message("New article challenge started! You have 15 seconds to answer.")
+        return await interaction.response.send_message(f"New article: You have {ARTICLE_TIMER} seconds to answer.")
 
     @app_commands.command(name="increment_score", description="Increments the player's score by a given value.")
     async def increment_score(self, interaction: Interaction, points: int) -> None:
@@ -145,8 +159,15 @@ class ArticleOverload(commands.Cog):
             )
         return await interaction.response.send_message(f"Abilities meter increased! Now at {meter_percentage}%")
 
-    @app_commands.command(name="show_abilities", description="Shows the player's current abilities.")
-    async def show_abilities(self, interaction: Interaction) -> None:
+    @app_commands.command(name="list_abilities", description="List all possible abilities.")
+    async def list_abilities(self, interaction: Interaction) -> None:
+        """Bot command to list all possible abilities."""
+        abilities = [ability.value for ability in AbilityType]
+        abilities_list = "\n".join(abilities)
+        await interaction.response.send_message(f"Possible abilities:\n{abilities_list}")
+
+    @app_commands.command(name="show_player_abilities", description="Shows the player's current abilities.")
+    async def show_player_abilities(self, interaction: Interaction) -> None:
         """Bot command.
 
         Description: Shows the player's current abilities.
@@ -161,6 +182,36 @@ class ArticleOverload(commands.Cog):
         abilities = player.get_abilities()
         abilities_list = ", ".join([ability.name for ability in abilities])
         return await interaction.response.send_message(f"Current abilities: {abilities_list}")
+
+    @app_commands.command(name="add_ability", description="Add an ability to the player.")
+    async def add_ability(self, interaction: Interaction, ability_name: str) -> None:
+        """Bot command to add an ability to the player."""
+        game = self.games.get(interaction.user.id)
+        if game is None:
+            return await interaction.response.send_message("Game not found!", ephemeral=True)
+
+        player = game.get_player(interaction.user.id)
+        if player is None:
+            return await interaction.response.send_message("Player not found!", ephemeral=True)
+
+        try:
+            ability = AbilityType[ability_name.upper()]
+            player.add_ability(ability)
+            await interaction.response.send_message(f"Added {ability.value} ability to the player!")
+        except KeyError:
+            await interaction.response.send_message("Invalid ability name!", ephemeral=True)
+
+    @app_commands.command(name="use_ability", description="Uses a player's ability.")
+    async def use_ability(self, interaction: Interaction, ability: AbilityType) -> None:
+        """Bot command to use a player's ability."""
+        game = self.games.get(interaction.user.id)
+        if not game:
+            return await interaction.response.send_message("Game not found!", ephemeral=True)
+        player = game.get_player(interaction.user.id)
+        if not player:
+            return await interaction.response.send_message("Player not found!", ephemeral=True)
+        result = player.use_ability(ability, game)
+        return await interaction.response.send_message(result)
 
     # ===================================================================
     # End of commands are meant to demo the Game mechanics

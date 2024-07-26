@@ -1,11 +1,10 @@
 import secrets
 import time
-from collections.abc import Callable
 from enum import Enum
 
 import discord
 
-from .constants import ABILITIES_THRESHOLD, ARTICLE_TIMER
+from .constants import ABILITIES_THRESHOLD, ARTICLE_TIMER, COOLDOWN_DURATION
 
 
 class AbilityType(Enum):
@@ -107,18 +106,32 @@ class Player:
         """
         self.abilities.append(ability)
 
-    def use_ability(self, ability: AbilityType) -> None:
-        """Use an ability.
+    def use_ability(self, ability: AbilityType, game: "Game") -> str:
+        """Use an ability."""
+        if ability not in self.abilities:
+            return "Ability not found!"
 
-        Parameters
-        ----------
-        ability : AbilityType
-            The ability to be used.
+        result = ""
+        if ability == AbilityType.COOLDOWN:
+            if game.article_timer <= 0:
+                result = "Nothing to cool down!"
+            else:
+                game.article_timer -= COOLDOWN_DURATION
+                result = f"Cooldown ability used! Timer reduced by {COOLDOWN_DURATION} seconds."
 
-        """
-        if ability in self.abilities:
-            # Add cases for specific ability effects
-            self.abilities.remove(ability)
+        elif ability == AbilityType.EXTEND_TIMER:
+            if game.article_timer <= 0:
+                result = "Nothing to extend!"
+            else:
+                game.article_timer = ARTICLE_TIMER
+                result = "Extend Timer ability used! Timer reset to 15 seconds."
+
+        elif ability == AbilityType.REMOVE_QUESTION:
+            result = "Remove Question ability used! (Effect TBD)"
+
+        self.abilities.remove(ability)
+        return result
+
 
     def update_score(self, points: int) -> None:
         """Update the player's score.
@@ -341,101 +354,3 @@ class Game:
             return max(0, self.article_timer - elapsed)
         return self.article_timer
 
-
-class Ability:
-    """A class to represent an ability.
-
-    Attributes
-    ----------
-    name : str
-        The name of the ability.
-    description : str
-        A description of what the ability does.
-    cooldown_time : int
-        The cooldown time for the ability in seconds.
-    effect : function
-        The function that defines the ability's effect.
-    last_used : float
-        The time when the ability was last used.
-
-    Methods
-    -------
-    activate(user: 'Player', target: 'Player') -> bool:
-        Activate the ability on a target.
-    is_on_cooldown() -> bool:
-        Check if the ability is on cooldown.
-    time_left() -> float:
-        Return the remaining cooldown time for the ability.
-
-    """
-
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        cooldown_time: int,
-        effect: Callable,
-    ) -> None:
-        """Construct all the necessary attributes for the ability object.
-
-        Parameters
-        ----------
-        name : str
-            The name of the ability.
-        description : str
-            A description of what the ability does.
-        cooldown_time : int
-            The cooldown time for the ability in seconds.
-        effect : callable
-            The function that defines the ability's effect.
-
-        """
-        self.name = name
-        self.description = description
-        self.cooldown_time = cooldown_time
-        self.effect = effect
-        self.last_used: float = 0.0
-
-    def activate(self, user: "Player", target: "Player") -> bool:
-        """Activate the ability on a target.
-
-        Parameters
-        ----------
-        user : Player
-            The player using the ability.
-        target : Player
-            The target player on whom the ability is being used.
-
-        Returns
-        -------
-        bool
-            True if the ability was successfully activated, False otherwise.
-
-        """
-        if self.is_on_cooldown():
-            return False
-        self.effect(user, target)
-        self.last_used = time.time()
-        return True
-
-    def is_on_cooldown(self) -> bool:
-        """Check if the ability is on cooldown.
-
-        Returns
-        -------
-        bool
-            True if the ability is on cooldown, False otherwise.
-
-        """
-        return time.time() - self.last_used < self.cooldown_time
-
-    def time_left(self) -> float:
-        """Return the remaining cooldown time for the ability.
-
-        Returns
-        -------
-        float
-            The remaining cooldown time in seconds.
-
-        """
-        return max(0, self.cooldown_time - (time.time() - self.last_used))
