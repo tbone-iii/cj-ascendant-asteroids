@@ -1,7 +1,8 @@
 import sys
 
 import openai
-from summarize import Article, ArticleTextInfo
+
+from .summarize import Article, ArticleTextInfo
 
 GPT_MODEL = "gpt-4"
 openai.api_key = sys.argv[1]
@@ -36,7 +37,12 @@ def get_summary(article_body: str) -> str:
 def write_topic(topic_words: str) -> None:
     """Write a topic."""
     article_body_text = get_gpt_response(topic_words)
-    article = Article(ArticleTextInfo(article_body_text, get_summary(article_body_text)))
+    article = Article(
+        ArticleTextInfo(
+            body_text=article_body_text,
+            summary=get_summary(article_body_text),
+        ),
+    )
     article.write()
     print(article)
 

@@ -46,7 +46,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = [
+"tests/**/*" = [
     # Undocumented public function (not needed for unit tests)
     "D103",
     # Missing docstrings.

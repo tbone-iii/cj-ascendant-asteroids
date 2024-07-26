@@ -38,7 +38,7 @@ class StartButtonView(View):
             embed = Embed(
                 title=f"{self.embed.title}, {self.embed.fields[1].value}",
                 description=f"Page or article (idk) {i}",
-                color=self.embed.color,
+                color=self.embed.color,  # type: ignore[arg-type]  # mypy issue
             )
             embed.set_thumbnail(url=self.embed.thumbnail.url)
             embed.add_field(name="Article", value="yada " * randint(3, 200))  # NOQA: S311
