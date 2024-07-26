@@ -1,3 +1,4 @@
+import asyncio
 import os
 import platform
 import secrets
@@ -6,11 +7,15 @@ import subprocess
 import discord
 from discord.ext import commands, tasks
 
+from article_overload.db.handler import DatabaseHandler
+
 from .constants import IGNORE_FILES, INTENTS, NEWS_STATIONS, OWNER_IDS
 from .exceptions import InvalidTokenError, NoTokenProvidedError
 from .tools.utils import color_message, get_json_file, read_text_file, update_json_file
 
 os.chdir("article_overload")  # TODO: Change this to pathlib usage
+database_path = "./assets/article_overload.db"
+database_url = f"sqlite+aiosqlite:///{database_path}"
 
 
 class ArticleOverloadBot(commands.Bot):
@@ -24,6 +29,9 @@ class ArticleOverloadBot(commands.Bot):
         """
         super().__init__(command_prefix="ao!", intents=INTENTS, owner_ids=OWNER_IDS)
         self.unloaded_cogs: list[str] = []
+
+        # This is a blocking call that occurs once during the bot's initialization.
+        self.database_handler = asyncio.run(DatabaseHandler.create(database_url))
 
     def start_bot(self, token: str | None) -> None:
         """Start the bot.

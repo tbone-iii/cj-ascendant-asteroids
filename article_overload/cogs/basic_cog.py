@@ -32,6 +32,7 @@ class Sample(commands.Cog):
         :Return: None
         """
         self.client = client
+        self.database_handler = client.database_handler
 
     @app_commands.command(name="ping", description=CommandDescriptions.PING.value)
     async def ping(self, interaction: Interaction) -> None:
@@ -52,6 +53,21 @@ class Sample(commands.Cog):
         embed = Embed(title="This is an embed")
         embed.add_field(name="Field", value="field value")
         await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="random_article", description=CommandDescriptions.CREATE_RANDOM_ARTICLE_EMBED.value)
+    async def create_random_article_embed(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Creates a random article embed
+        :Return: None
+        """
+        article = await self.database_handler.get_random_article()
+        await interaction.response.send_message(
+            embed=Embed(
+                title=article.title,
+                description=article.body_text,
+            ),
+        )
 
     @app_commands.command(
         name="create_button_example",
