@@ -1,8 +1,18 @@
+import secrets
 import time
-from collections.abc import Callable
-from typing import Self
+from enum import Enum
 
 import discord
+
+from .constants import ABILITIES_THRESHOLD, ARTICLE_TIMER, COOLDOWN_DURATION
+
+
+class AbilityType(Enum):
+    """a class to represent abilities available to a player."""
+
+    COOLDOWN = "Cooldown"
+    REMOVE_QUESTION = "Remove Question"
+    EXTEND_TIMER = "Extend Timer"
 
 
 class Player:
@@ -22,13 +32,17 @@ class Player:
         The score of the player.
     abilities : list
         The list of abilities the player has.
+    abilities_meter: int
+        The value of the player's ability meter to determine when ability will appear.
+    abilities_threshold: int
+        The max value a player's ability meter will need to reach before an ability will appear.
 
     Methods
     -------
-    add_ability(ability: 'Ability') -> None:
+    add_ability(ability: AbilityType) -> None:
         Add an ability to the player's list of abilities.
-    use_ability(ability_name: str, target: 'Player') -> bool:
-        Use an ability on a target.
+    use_ability(ability: AbilityType) -> None:
+        Use an ability.
     update_score(points: int) -> None:
         Update the player's score.
     get_display_name() -> str:
@@ -39,6 +53,16 @@ class Player:
         Return the player's ID.
     get_score() -> int:
         Return the player's score.
+    get_abilities() -> list:
+        Return the player's abilities.
+    get_abilities_meter() -> int:
+        Return the player's abilities meter.
+    update_abilities_meter(value: int) -> None:
+        Update the player's abilities meter.
+    get_abilities_meter_percentage -> int:
+        Get the player's ability meter capacity in %
+    reset_abilities_meter() -> None:
+        Reset the player's abilities meter.
 
     """
 
@@ -68,39 +92,46 @@ class Player:
         self.display_name = display_name
         self.avatar_url = avatar_url
         self.score = 0
-        self.abilities: list[Ability] = []
+        self.abilities = []
+        self.abilities_meter = 0
+        self.abilities_threshold = ABILITIES_THRESHOLD
 
-    def add_ability(self, ability: "Ability") -> None:
+    def add_ability(self, ability: AbilityType) -> None:
         """Add an ability to the player's list of abilities.
 
         Parameters
         ----------
-        ability : Ability
+        ability : AbilityType
             The ability to be added.
 
         """
         self.abilities.append(ability)
 
-    def use_ability(self, ability_name: str, target: Self) -> bool:
-        """Use an ability on a target.
+    def use_ability(self, ability: AbilityType, game: "Game") -> str:
+        """Use an ability."""
+        if ability not in self.abilities:
+            return "Ability not found!"
 
-        Parameters
-        ----------
-        ability_name : str
-            The name of the ability to be used.
-        target : Player
-            The target player on whom the ability will be used.
+        result = ""
+        if ability == AbilityType.COOLDOWN:
+            if game.article_timer <= 0:
+                result = "Nothing to cool down!"
+            else:
+                game.article_timer -= COOLDOWN_DURATION
+                result = f"Cooldown ability used! Timer reduced by {COOLDOWN_DURATION} seconds."
 
-        Returns
-        -------
-        bool
-            True if the ability was successfully used, False otherwise.
+        elif ability == AbilityType.EXTEND_TIMER:
+            if game.article_timer <= 0:
+                result = "Nothing to extend!"
+            else:
+                game.article_timer = ARTICLE_TIMER
+                result = "Extend Timer ability used! Timer reset to 15 seconds."
 
-        """
-        for ability in self.abilities:
-            if ability.name == ability_name:
-                return ability.activate(self, target)
-        return False
+        elif ability == AbilityType.REMOVE_QUESTION:
+            result = "Remove Question ability used! (Effect TBD)"
+
+        self.abilities.remove(ability)
+        return result
 
     def update_score(self, points: int) -> None:
         """Update the player's score.
@@ -157,6 +188,32 @@ class Player:
         """
         return self.score
 
+    def get_abilities(self) -> list:
+        """Get the list of player's abilities."""
+        return self.abilities
+
+    def get_abilities_meter(self) -> int:
+        """Get the value of player's ability meter."""
+        return self.abilities_meter
+
+    def update_abilities_meter(self, value: int) -> AbilityType | None:
+        """Update the abilities meter and return the new ability if threshold is reached."""
+        self.abilities_meter += value
+        if self.abilities_meter >= self.abilities_threshold:
+            self.abilities_meter = 0
+            new_ability = secrets.choice(list(AbilityType))
+            self.add_ability(new_ability)
+            return new_ability
+        return None
+
+    def get_abilities_meter_percentage(self) -> int:
+        """Get the meter percentage obtained and return its value."""
+        return int((self.abilities_meter / self.abilities_threshold) * 100)
+
+    def reset_abilities_meter(self) -> None:
+        """Reset the abilities meter."""
+        self.abilities_meter = 0
+
 
 class Game:
     """A class to represent the game.
@@ -167,19 +224,25 @@ class Game:
         The list of players in the game.
     state : str
         The current state of the game.
+    start_time : float
+        The start time in seconds.
+    end_time: float
+        The end time in seconds.
 
     Methods
     -------
-    add_player(player: 'Player') -> None:
+    add_player(player: Player) -> None:
         Add a player to the game.
     start_game() -> None:
         Start the game by changing the state to 'in_progress'.
     end_game() -> None:
         End the game by changing the state to 'ended'.
-    get_player(player_id: int) -> 'Player':
+    get_player(player_id: int) -> Player | None:
         Retrieve a player by their ID.
-    create_start_game_embed(player: 'Player') -> discord.Embed:
+    create_start_game_embed(player: Player) -> discord.Embed:
         Create a Discord embed for the start of the game.
+    get_game_duration() -> str:
+        Return the duration of the game as a formatted string.
 
     """
 
@@ -187,6 +250,13 @@ class Game:
         """Construct all the necessary attributes for the game object."""
         self.players: list[Player] = []
         self.state = "not_started"
+        # Game specific timing
+        self.start_time: float = 0.0
+        self.end_time: float = 0.0
+        # Article specific timing, capped 15 second allowed per question
+        self.article_timer: float = ARTICLE_TIMER
+        self.article_timer_start: float = 0.0
+        self.article_timer_active: bool = False
 
     def add_player(self, player: Player) -> None:
         """Add a player to the game.
@@ -202,10 +272,12 @@ class Game:
     def start_game(self) -> None:
         """Start the game by changing the state to 'in_progress'."""
         self.state = "in_progress"
+        self.start_time = time.time()
 
     def end_game(self) -> None:
         """End the game by changing the state to 'ended'."""
         self.state = "ended"
+        self.end_time = time.time()
 
     def get_player(self, player_id: int) -> "Player | None":
         """Retrieve a player by their ID.
@@ -254,101 +326,31 @@ class Game:
         embed.set_thumbnail(url=player.get_avatar_url())
         return embed
 
+    def get_game_duration(self) -> str:
+        """Return the duration of the game as a formatted string."""
+        if self.state == "not_started":
+            return "Game has not started."
 
-class Ability:
-    """A class to represent an ability.
+        duration = time.time() - self.start_time
+        minutes, seconds = divmod(duration, 60)
+        return f"{int(minutes)} minutes {int(seconds)} seconds"
 
-    Attributes
-    ----------
-    name : str
-        The name of the ability.
-    description : str
-        A description of what the ability does.
-    cooldown_time : int
-        The cooldown time for the ability in seconds.
-    effect : function
-        The function that defines the ability's effect.
-    last_used : float
-        The time when the ability was last used.
+    def start_article_timer(self) -> None:
+        """Start the timer countdown for the overload article questions."""
+        self.article_timer_start = time.time()
+        self.article_timer_active = True
 
-    Methods
-    -------
-    activate(user: 'Player', target: 'Player') -> bool:
-        Activate the ability on a target.
-    is_on_cooldown() -> bool:
-        Check if the ability is on cooldown.
-    time_left() -> float:
-        Return the remaining cooldown time for the ability.
+    def stop_article_timer(self) -> None:
+        """Stop the timer countdown for the overload article questions."""
+        self.article_timer_active = False
 
-    """
+    def reset_article_timer(self) -> None:
+        """Reset the timer countdown for the overload article."""
+        self.article_timer = ARTICLE_TIMER
 
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        cooldown_time: int,
-        effect: Callable,
-    ) -> None:
-        """Construct all the necessary attributes for the ability object.
-
-        Parameters
-        ----------
-        name : str
-            The name of the ability.
-        description : str
-            A description of what the ability does.
-        cooldown_time : int
-            The cooldown time for the ability in seconds.
-        effect : callable
-            The function that defines the ability's effect.
-
-        """
-        self.name = name
-        self.description = description
-        self.cooldown_time = cooldown_time
-        self.effect = effect
-        self.last_used: float = 0.0
-
-    def activate(self, user: "Player", target: "Player") -> bool:
-        """Activate the ability on a target.
-
-        Parameters
-        ----------
-        user : Player
-            The player using the ability.
-        target : Player
-            The target player on whom the ability is being used.
-
-        Returns
-        -------
-        bool
-            True if the ability was successfully activated, False otherwise.
-
-        """
-        if self.is_on_cooldown():
-            return False
-        self.effect(user, target)
-        self.last_used = time.time()
-        return True
-
-    def is_on_cooldown(self) -> bool:
-        """Check if the ability is on cooldown.
-
-        Returns
-        -------
-        bool
-            True if the ability is on cooldown, False otherwise.
-
-        """
-        return time.time() - self.last_used < self.cooldown_time
-
-    def time_left(self) -> float:
-        """Return the remaining cooldown time for the ability.
-
-        Returns
-        -------
-        float
-            The remaining cooldown time in seconds.
-
-        """
-        return max(0, self.cooldown_time - (time.time() - self.last_used))
+    def get_article_timer(self) -> float:
+        """Get the timer countdown for the overload article questions."""
+        if self.article_timer_active:
+            elapsed = time.time() - self.article_timer_start
+            return max(0, self.article_timer - elapsed)
+        return self.article_timer
