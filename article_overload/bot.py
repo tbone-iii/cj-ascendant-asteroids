@@ -8,6 +8,7 @@ import discord
 from discord.ext import commands, tasks
 
 from article_overload.db.handler import DatabaseHandler
+from utils.game_classes import Game
 
 from .constants import IGNORE_FILES, INTENTS, NEWS_STATIONS, OWNER_IDS
 from .exceptions import InvalidTokenError, NoTokenProvidedError
@@ -32,6 +33,9 @@ class ArticleOverloadBot(commands.Bot):
 
         # This is a blocking call that occurs once during the bot's initialization.
         self.database_handler = asyncio.run(DatabaseHandler.create(database_url))
+
+        # Stores active games
+        self.games: dict[int, "Game"] = {}
 
     def start_bot(self, token: str | None) -> None:
         """Start the bot.

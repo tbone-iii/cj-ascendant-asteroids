@@ -65,7 +65,7 @@ class Sample(commands.Cog):
         await interaction.response.send_message(
             embed=Embed(
                 title=article.title,
-                description=article.body_text,
+                description=article.marked_up_summary,
             ),
         )
 

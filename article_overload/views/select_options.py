@@ -25,7 +25,7 @@ class SelectOptions(Select):
                 for i in range(len(option_titles))
             ],
             min_values=0,
-            max_values=25,
+            max_values=len(option_titles),
         )
 
     async def callback(self, interaction: Interaction) -> None:
@@ -60,6 +60,14 @@ class SelectOptionsView(View):
         self.clicked: list[str] = []
         self.min_val, self.max_val = value_range
 
+        self.generate_select_menus(option_titles, option_values)
+
+    def generate_select_menus(self, option_titles: list[str], option_values: list[str]) -> None:
+        """Callback to Create Select Menus
+        
+        Description: Creates as many select menus as needed for the options
+        :Return: None
+        """
         for option_titles_chunk, option_values_chunk in zip(
             batched(option_titles, self.MAX_OPTIONS_PER_SELECT),
             batched(option_values, self.MAX_OPTIONS_PER_SELECT),
@@ -71,6 +79,7 @@ class SelectOptionsView(View):
                     option_values_chunk,
                 ),
             )
+
 
     @button(label="Complete", style=ButtonStyle.green, row=4)
     async def submit(self, _: Interaction, __: Button) -> None:

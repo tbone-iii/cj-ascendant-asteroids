@@ -1,10 +1,15 @@
+import asyncio
 from random import randint
 
 from discord import ButtonStyle, Embed, Interaction
 from discord.ui import Button, View, button
 
+from article_overload.bot import ArticleOverloadBot
+from utils.game_classes import Game
+
 from .pagination import PaginationView
 
+from .game_view import GameView
 
 class ButtonView(View):
     """Creates a view subclass containing buttons and their callback functions.
@@ -24,33 +29,11 @@ class ButtonView(View):
 class StartButtonView(View):
     """View subclass containing a start button."""
 
-    def __init__(self, og_interaction: Interaction, embed: Embed) -> None:
+    def __init__(self, og_interaction: Interaction, game: Game, client: ArticleOverloadBot) -> None:
         super().__init__()
         self.og_interaction = og_interaction
-        self.embed = embed
-
-    # Need a function to create data/embeds for pagination (testing purposes)
-    # When actually implementing, we'll fetch and use article data from the DB
-    def generate_data(self, length: int) -> list[dict]:
-        """Generate pagination data."""
-        data = []
-        for i in range(length):
-            embed = Embed(
-                title=f"{self.embed.title}, {self.embed.fields[1].value}",
-                description=f"Page or article (idk) {i}",
-                color=self.embed.color,  # type: ignore[arg-type]  # mypy issue
-            )
-            embed.set_thumbnail(url=self.embed.thumbnail.url)
-            embed.add_field(name="Article", value="yada " * randint(3, 200))  # NOQA: S311
-            data.append(
-                {
-                    "embed": embed,
-                    "title": str(i),
-                    "description": str(i) * 2,
-                    "num": i + 1,
-                },
-            )
-        return data
+        self.game = game
+        self.client = client
 
     @button(label="Start", style=ButtonStyle.blurple)
     async def button_callback1(
@@ -62,13 +45,13 @@ class StartButtonView(View):
 
         Description: Callback function for the button initialized by decorator.
         """
-        await self.og_interaction.delete_original_response()
-        # Testing responses after deletion
         await interaction.response.defer()
 
-        view = PaginationView(
-            self.og_interaction.user.id,
-            self.generate_data(25),
-        )
-        await interaction.followup.send(embed=view.data[0]["embed"], view=view)
-        await view.wait()
+        article = await self.client.database_handler.get_random_article()
+        embed = Embed(title="Article Overload!", description=f"Please read the following article summary and use the select menu below to choose which sentence is false:\n\n{article.marked_up_summary}")
+
+        self.game.start_game()
+
+        self.game.start_article_timer()
+
+        await interaction.edit_original_response(embed=embed, view=GameView(self.og_interaction, self.client, article, self.game))

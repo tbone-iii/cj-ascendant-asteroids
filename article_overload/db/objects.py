@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Self
+from re import sub
 
 from pydantic import BaseModel, computed_field
 
@@ -44,6 +45,23 @@ class Article(BaseModel):
         :Return: `list[str]`
         """
         return [question for index, question in enumerate(self.questions) if index != self.incorrect_option_index]
+    
+    @computed_field
+    @property
+    def marked_up_summary(self) -> str:
+        """Return the marked up version of the body text (version containing the sentence options bolded)
+        
+        :Return: `str`
+        """
+        marked_up_text = ""
+        for sentence in sub("[<>[\]]", "", self.summary).splitlines():
+            if sentence.strip() in self.questions:
+                marked_up_text += f"**{sentence.strip()}** "
+
+            else:
+                marked_up_text += sentence.strip().strip('"') + " "
+
+        return marked_up_text[:-1]
 
     @classmethod
     def create_from_article_record(
