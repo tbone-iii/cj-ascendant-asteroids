@@ -43,6 +43,11 @@ ignore = [
     "ANN102",
     # Assert error.
     "S101",
+    # Copyright warning message
+    "CPY001",
+    # Pytest decorator conflictd with formatter
+    "PT023",
+    "PT001",
 ]
 
 [tool.ruff.lint.per-file-ignores]
