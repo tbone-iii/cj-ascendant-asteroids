@@ -5,6 +5,8 @@ from enum import Enum
 
 import discord
 
+from .constants import ABILITIES_THRESHOLD, ARTICLE_TIMER
+
 
 class AbilityType(Enum):
     """a class to represent abilities available to a player."""
@@ -92,7 +94,7 @@ class Player:
         self.score = 0
         self.abilities = []
         self.abilities_meter = 0
-        self.abilities_threshold = 100
+        self.abilities_threshold = ABILITIES_THRESHOLD
 
     def add_ability(self, ability: AbilityType) -> None:
         """Add an ability to the player's list of abilities.
@@ -234,8 +236,13 @@ class Game:
         """Construct all the necessary attributes for the game object."""
         self.players: list[Player] = []
         self.state = "not_started"
+        # Game specific timing
         self.start_time: float = 0.0
         self.end_time: float = 0.0
+        # Article specific timing, capped 15 second allowed per question
+        self.article_timer: float = ARTICLE_TIMER
+        self.article_timer_start: float = 0.0
+        self.article_timer_active: bool = False
 
     def add_player(self, player: Player) -> None:
         """Add a player to the game.
@@ -313,6 +320,26 @@ class Game:
         duration = time.time() - self.start_time
         minutes, seconds = divmod(duration, 60)
         return f"{int(minutes)} minutes {int(seconds)} seconds"
+
+    def start_article_timer(self) -> None:
+        """Start the timer countdown for the overload article questions."""
+        self.article_timer_start = time.time()
+        self.article_timer_active = True
+
+    def stop_article_timer(self) -> None:
+        """Stop the timer countdown for the overload article questions."""
+        self.article_timer_active = False
+
+    def reset_article_timer(self) -> None:
+        """Reset the timer countdown for the overload article."""
+        self.article_timer = ARTICLE_TIMER
+
+    def get_article_timer(self) -> float:
+        """Get the timer countdown for the overload article questions."""
+        if self.article_timer_active:
+            elapsed = time.time() - self.article_timer_start
+            return max(0, self.article_timer - elapsed)
+        return self.article_timer
 
 
 class Ability:

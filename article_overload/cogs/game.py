@@ -94,6 +94,20 @@ class ArticleOverload(commands.Cog):
         duration = game.get_game_duration()
         return await interaction.response.send_message(f"Current game duration: {duration}")
 
+    @app_commands.command(name="start_new_article_challenge", description="Starts a 15-second timer to answer.")
+    async def start_new_article_challenge(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Starts a new article challenge with a 15-second timer.
+        :Return: None
+        """
+        game = self.games.get(interaction.user.id)
+        if game is None:
+            return await interaction.response.send_message("Game not found!", ephemeral=True)
+        game.reset_article_timer()
+        game.start_article_timer()
+        return await interaction.response.send_message("New article challenge started! You have 15 seconds to answer.")
+
     @app_commands.command(name="increment_score", description="Increments the player's score by a given value.")
     async def increment_score(self, interaction: Interaction, points: int) -> None:
         """Bot command.
@@ -147,6 +161,10 @@ class ArticleOverload(commands.Cog):
         abilities = player.get_abilities()
         abilities_list = ", ".join([ability.name for ability in abilities])
         return await interaction.response.send_message(f"Current abilities: {abilities_list}")
+
+    # ===================================================================
+    # End of commands are meant to demo the Game mechanics
+    # ===================================================================
 
 async def setup(client: ArticleOverloadBot) -> None:
     """Set up command.
