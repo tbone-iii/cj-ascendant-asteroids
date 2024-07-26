@@ -307,3 +307,15 @@ async def test_get_all_articles_from_sample_db(
     expected_ids = [article.id for article in sample_article_records]
     retrieved_ids = [article.id for article in retrieved_articles]
     assert expected_ids == retrieved_ids
+
+
+@pytest.mark.asyncio()
+async def test_get_random_article_from_sample_db(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+    retrieved_article = await database_handler.get_random_article()
+
+    assert retrieved_article is not None
+    assert retrieved_article.id is not None
+    assert retrieved_article.id in [article.id for article in sample_article_records]

@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Self
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 from article_overload.db.models import ArticleRecord, QuestionRecord, SizeRecord
 from article_overload.exceptions import DatabaseObjectNotProperlyInitializedError
@@ -26,6 +26,24 @@ class Article(BaseModel):
     size: str
     author: str
     date_published: datetime
+
+    @computed_field
+    @property
+    def false_statement(self) -> str:
+        """Return the incorrect question from the list of questions.
+
+        :Return: `str`
+        """
+        return self.questions[self.incorrect_option_index]
+
+    @computed_field
+    @property
+    def true_statements(self) -> list[str]:
+        """Return a list of correct statements from the list of questions.
+
+        :Return: `list[str]`
+        """
+        return [question for index, question in enumerate(self.questions) if index != self.incorrect_option_index]
 
     @classmethod
     def create_from_article_record(
