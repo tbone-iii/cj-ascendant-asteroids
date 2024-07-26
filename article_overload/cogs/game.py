@@ -218,6 +218,7 @@ class ArticleOverload(commands.Cog):
     # End of commands are meant to demo the Game mechanics
     # ===================================================================
 
+
 async def setup(client: ArticleOverloadBot) -> None:
     """Set up command.
 

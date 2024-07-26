@@ -14,6 +14,7 @@ class AbilityType(Enum):
     REMOVE_QUESTION = "Remove Question"
     EXTEND_TIMER = "Extend Timer"
 
+
 class Player:
     """A class to represent a player in the game.
 
@@ -132,7 +133,6 @@ class Player:
         self.abilities.remove(ability)
         return result
 
-
     def update_score(self, points: int) -> None:
         """Update the player's score.
 
@@ -213,6 +213,7 @@ class Player:
     def reset_abilities_meter(self) -> None:
         """Reset the abilities meter."""
         self.abilities_meter = 0
+
 
 class Game:
     """A class to represent the game.
@@ -353,4 +354,3 @@ class Game:
             elapsed = time.time() - self.article_timer_start
             return max(0, self.article_timer - elapsed)
         return self.article_timer
-

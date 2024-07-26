@@ -1,4 +1,3 @@
-
 # Time specific constants
 ARTICLE_TIMER = 60.0
 EXTEND_TIMER_VALUE = 10.0
