@@ -23,6 +23,7 @@ class ArticleContextInfo:
 
     def __init__(
         self,
+        title: str = "Unnamed Article",
         date: datetime.datetime | None = None,
         url: str = "",
         author: str = "gpt",
@@ -34,6 +35,7 @@ class ArticleContextInfo:
 
         self.url = url
         self.author = author
+        self.title = title
 
 
 class ArticleSelectionInfo:
@@ -107,6 +109,7 @@ class Article:
             options_out += "\n"
 
         return f"""
+----- {self.article_context_info.title} -----
 ----- INFO -----
 Topic: {self.article_selection_info.topic}
 Size: {self.article_selection_info.size}
@@ -138,6 +141,7 @@ Author: {self.article_context_info.author}
         day = self.article_context_info
         articles.append(
             {
+                "title": self.article_context_info.title,
                 "body_text": self.article_text_info.body_text,
                 "summary": self.article_text_info.summary,
                 "questions": self.article_text_info.sentence_options,
@@ -173,6 +177,7 @@ Author: {self.article_context_info.author}
             ),
             article_selection_info=ArticleSelectionInfo(data["topic"], data["size"]),
             article_context_info=ArticleContextInfo(
+                title=data["title"],
                 date=datetime.datetime(year=int(year), month=int(month), day=int(day), tzinfo=DEFAULT_TIMEZONE),
                 url=data["url"],
                 author=data["author"],

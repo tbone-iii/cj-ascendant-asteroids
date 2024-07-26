@@ -1,8 +1,7 @@
 import sys
 
 import openai
-
-from .summarize import Article, ArticleTextInfo
+from summarize import Article, ArticleContextInfo, ArticleSelectionInfo, ArticleTextInfo
 
 GPT_MODEL = "gpt-4"
 openai.api_key = sys.argv[1]
@@ -41,6 +40,10 @@ def write_topic(topic_words: str) -> None:
         ArticleTextInfo(
             body_text=article_body_text,
             summary=get_summary(article_body_text),
+        ),
+        ArticleSelectionInfo(),
+        ArticleContextInfo(
+            get_gpt_response(f"Generate a few word long title for the following article\n{article_body_text}"),
         ),
     )
     article.write()
