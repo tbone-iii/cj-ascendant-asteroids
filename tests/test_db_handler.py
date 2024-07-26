@@ -1,3 +1,4 @@
+import itertools as it
 import sqlite3
 from collections.abc import AsyncGenerator, Sequence
 from pathlib import Path
@@ -9,7 +10,13 @@ from article_overload.db import handler, models, objects
 from sqlalchemy import Engine, Row, create_engine, text
 
 from .exceptions import InvalidTableNameError
-from .sample_data import prebuild_article, prebuild_articles, sample_article_records
+from .sample_data import (
+    prebuild_article,
+    prebuild_articles,
+    sample_article_records,
+    sample_questions_records,
+    sample_size_records,
+)
 from .utils import (
     TEST_DIRECTORY,
     DatabaseSetupInfo,
@@ -86,34 +93,112 @@ async def setup_blank_db() -> SetupData:
 def setup_sample_db_file() -> DatabaseSetupInfo:
     """Set up a sample database for testing that is prepopulated with data.
 
+    The structure is HIGHLY important for the tests to work correctly.
+    Refer to `ArticleRecord` in `models.py` for the structure.
+
     :Return: Database setup information, which includes the database url and file path.
     """
     # sample_art
 
     database_setup_info = generate_db_setup_info()
 
-    table_name = models.ArticleRecord.__tablename__
+    article_table_name = models.ArticleRecord.__tablename__
+    questions_table_name = models.QuestionRecord.__tablename__
+    size_table_name = models.SizeRecord.__tablename__
+
+    table_names = [
+        article_table_name,
+        questions_table_name,
+        size_table_name,
+    ]
+
     # To prevent any risk of SQL injection attacks if somehow this test gets out to prod
-    if not table_name.isalnum():
-        raise InvalidTableNameError
+
+    for table_name in table_names:
+        if not table_name.isalnum():
+            raise InvalidTableNameError
 
     with sqlite3.connect(database_setup_info.file_path) as conn:
         cursor = conn.cursor()
         cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS {table_name} (
-                id INTEGER PRIMARY KEY,
-                url TEXT,
-                body_text TEXT,
-                summary TEXT
-            )
+            CREATE TABLE IF NOT EXISTS {article_table_name} (
+                id INTEGER PRIMARY KEY NOT NULL,
+                url TEXT NOT NULL,
+                body_text TEXT NOT NULL,
+                title TEXT NOT NULL,
+                author TEXT NOT NULL,
+                incorrect_option_index INTEGER NOT NULL,
+                summary TEXT NOT NULL,
+                date_published DATETIME,
+                topic TEXT,
+                size_id INTEGER NOT NULL
+            );""")
+
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {questions_table_name} (
+                id INTEGER PRIMARY KEY NOT NULL,
+                article_id INTEGER NOT NULL,
+                question TEXT NOT NULL
+            );""")
+
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {size_table_name} (
+                id INTEGER PRIMARY KEY NOT NULL,
+                size TEXT NOT NULL
+            );
         """)
 
         for article in sample_article_records:
             cursor.execute(
                 f"""
-                INSERT INTO {table_name} (id, url, body_text, summary) VALUES (?, ?, ?, ?)
-            """,  # noqa: S608, no string injection risk here
-                (article.id, article.url, article.body_text, article.summary),
+                    INSERT INTO {article_table_name}
+                    (
+                        id,
+                        url,
+                        body_text,
+                        title,
+                        author,
+                        incorrect_option_index,
+                        summary,
+                        date_published,
+                        topic,
+                        size_id
+                    )
+
+                    VALUES
+
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                """,
+                (
+                    article.id,
+                    article.url,
+                    article.body_text,
+                    article.title,
+                    article.author,
+                    article.incorrect_option_index,
+                    article.summary,
+                    article.date_published,
+                    article.topic,
+                    article.size_id,
+                ),
+            )
+
+        for question_record in it.chain(*sample_questions_records):
+            cursor.execute(
+                f"""
+                    INSERT INTO {questions_table_name}
+                    (id, article_id, question) VALUES (?, ?, ?);
+                """,  # noqa: S608, no risk of SQL injection
+                (question_record.id, question_record.article_id, question_record.question),
+            )
+
+        for size_record in sample_size_records:
+            cursor.execute(
+                f"""
+                    INSERT INTO {size_table_name}
+                    (id, size) VALUES (?, ?);
+                """,  # noqa: S608, no risk of SQL injection
+                (size_record.id, size_record.size),
             )
 
     return database_setup_info

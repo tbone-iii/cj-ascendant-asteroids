@@ -9,17 +9,22 @@ from .sample_data import sample_article_records, sample_articles
 @pytest.mark.parametrize("article", sample_articles)
 def test_get_parameters_returns_only_established_parameters(article: Article) -> None:
     result_parameters = get_class_parameters(article)
-    expected_parameters = ["id", "url", "body_text", "summary"]
+    expected_parameters = [
+        "id",
+        "url",
+        "body_text",
+        "summary",
+        "questions",
+        "incorrect_option_index",
+        "title",
+        "topic",
+        "size",
+        "author",
+        "date_published",
+    ]
 
     assert len(result_parameters) == len(expected_parameters)
     assert set(result_parameters) == set(expected_parameters)
-
-
-@pytest.mark.parametrize("article", sample_articles)
-def test_create_article_record_creates_article_record_from_article(article: Article) -> None:
-    article_record = article.create_article_record()
-
-    assert hasattr(article_record, "id")
 
 
 @pytest.mark.parametrize(

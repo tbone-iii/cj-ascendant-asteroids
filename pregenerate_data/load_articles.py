@@ -1,12 +1,15 @@
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from article_overload.db.handler import DatabaseHandler
 from article_overload.db.objects import Article
 
+JsonBody = list[dict[str, Any]]
 
-def get_json_body(file_path: Path) -> dict[str, Any]:
+
+def get_json_body(file_path: Path) -> JsonBody:
     """Get the JSON body.
 
     Description: This function does not need to be called outside of this module.
@@ -18,7 +21,7 @@ def get_json_body(file_path: Path) -> dict[str, Any]:
         return json.load(file)
 
 
-def load_articles(json_loaded_body: dict[str, Any]) -> list[Article]:
+def load_articles(json_loaded_body: JsonBody) -> list[Article]:
     """Load articles from a JSON file to the `Article` pydantic model.
 
     Description: Pydantic is useful here to validate that the JSON body is exactly as expected, including the correct
@@ -26,9 +29,16 @@ def load_articles(json_loaded_body: dict[str, Any]) -> list[Article]:
 
     :return: A list of `Article` objects.
     """
-    article_dicts = json_loaded_body["articles"]
+    article_dicts = json_loaded_body
     articles = []
     for article_dict in article_dicts:
+        year, month, day = article_dict["date_published"].split("-")
+        article_dict["date_published"] = datetime(
+            year=int(year),
+            month=int(month),
+            day=int(day),
+            tzinfo=UTC,
+        )
         article = Article(**article_dict)
         articles.append(article)
     return articles
