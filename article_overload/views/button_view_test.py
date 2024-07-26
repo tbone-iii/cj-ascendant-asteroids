@@ -42,6 +42,10 @@ class StartButtonView(View):
 
         Description: Callback function for the button initialized by decorator.
         """
+        msg = f"{interaction.user.name} started a game.\n"
+        self.bot.logger.info()
+        await self.og_interaction.delete_original_response(msg)
+        # Testing responses after deletion
         await interaction.response.defer()
 
         article = await self.client.database_handler.get_random_article()
