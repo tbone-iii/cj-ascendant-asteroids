@@ -1,4 +1,5 @@
 import logging
+from logging import handlers
 
 from discord import Interaction, app_commands
 from discord.app_commands import AppCommandError
@@ -22,7 +23,7 @@ class Logger(commands.Cog):
         logging.getLogger("discord.client").setLevel(logging.INFO)
         logging.getLogger("discord.gateway").setLevel(logging.INFO)
         logging.getLogger("discord.webhook").setLevel(logging.INFO)
-        handler = logging.handlers.RotatingFileHandler(
+        handler = handlers.RotatingFileHandler(
             filename="discord.log",
             encoding="utf-8",
             maxBytes=32 * 1024 * 1024,  # 32 MiB
