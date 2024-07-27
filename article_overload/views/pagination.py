@@ -4,6 +4,8 @@ from itertools import batched
 from discord import ButtonStyle, Interaction, SelectOption
 from discord.ui import Button, Select, View, button
 
+from article_overload.exceptions import PaginationViewMissingButtonsError
+
 
 class PaginationSelect(Select):
     """Pagination select menu class."""
@@ -60,8 +62,13 @@ class PaginationView(View):
         self.org_user = org_user
         self.data = data
         self.page = page
-        self.L_button: Button = self.children[0]
-        self.R_button: Button = self.children[1]
+
+        left_button, right_button = self.children[0], self.children[1]
+        if not isinstance(left_button, Button) or not isinstance(right_button, Button):
+            raise PaginationViewMissingButtonsError
+
+        self.L_button: Button = left_button
+        self.R_button: Button = right_button
 
         for data_chunk in batched(data, self.PAGE_SIZE):
             self.add_item(PaginationSelect(data_chunk, self.data, page))

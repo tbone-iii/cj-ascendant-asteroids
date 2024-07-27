@@ -1,13 +1,14 @@
 import time
 
-from discord import ButtonStyle, Embed, Interaction, SelectOption
+from discord import ButtonStyle, Embed, Interaction, InteractionMessage, SelectOption
 from discord.ext import tasks
 from discord.ui import Button, Select, View, button
-from utils.game_classes import Game
+from utils.game_classes import Game, Player
 
 from article_overload.bot import ArticleOverloadBot
-from article_overload.constants import COLOR_BAD, COLOR_GOOD, CORRECT_ANSWER_POINTS, MAX_INCORRECT
+from article_overload.constants import MAX_INCORRECT
 from article_overload.db.objects import Article
+from article_overload.exceptions import PlayerNotFoundError
 from article_overload.tools.embeds import (
     create_article_embed,
     create_correct_answer_embed,
@@ -34,19 +35,6 @@ class SentenceSelect(Select):
             options=[
                 SelectOption(label=f"{n + 1}: {question[:self.CHAR_LIMIT]}", value=question[: self.CHAR_LIMIT])
                 for n, question in enumerate(sentences)
-            ],
-        )
-
-
-class SentenceSelect(Select):
-    CHAR_LIMIT = 100
-
-    def __init__(self, sentences: list[str]):
-        super().__init__(
-            placeholder="Select a sentence",
-            options=[
-                SelectOption(label=question[: self.CHAR_LIMIT], value=question[: self.CHAR_LIMIT])
-                for question in sentences
             ],
         )
 
@@ -103,7 +91,10 @@ class GameView(View):
         self.article = article
         self.game = game
 
-        self.player = self.game.get_player(self.og_interaction.user.id)
+        player = self.game.get_player(self.og_interaction.user.id)
+        if player is None:
+            raise PlayerNotFoundError
+        self.player: Player = player
 
         self.sentence_selection = SentenceSelect(self.article.questions)
         self.add_item(self.sentence_selection)
@@ -111,7 +102,7 @@ class GameView(View):
         self.check_time.start()
 
     @button(label="Submit", style=ButtonStyle.green, row=1)
-    async def submit_answer(self, interaction: Interaction, _: Button) -> None:
+    async def submit_answer(self, interaction: Interaction, _: Button) -> InteractionMessage | None:
         """Button callback.
 
         Description: Callback to see if user wants to submit their answer.
@@ -120,11 +111,10 @@ class GameView(View):
         await interaction.response.defer()
 
         if len(self.sentence_selection.values) == 0:
-            return await interaction.followup.send(
+            await interaction.followup.send(
                 embed=create_error_embed(
                     title="Select an Answer!",
                     description="Please select an answer choice using the select menu!",
-                    ephemeral=True,
                 ),
             )
 
@@ -157,7 +147,8 @@ class GameView(View):
 
         embed = Embed(
             title="Article Overload!",
-            description="Please read the following article summary and use the select menu below to choose which sentence is false:",
+            description="Please read the following article summary and "
+            "use the select menu below to choose which sentence is false:",
         )
         embed.add_field(name="", value=f"{self.article.marked_up_summary}")
         embed.add_field(name="Time remaining:", value=f"<t:{int(time.time()+self.game.article_timer)}:R>", inline=True)
@@ -168,7 +159,7 @@ class GameView(View):
 
         return await interaction.edit_original_response(embed=embed, view=self)
 
-    async def interaction_check(self, interaction: Interaction) -> None:
+    async def interaction_check(self, interaction: Interaction) -> bool:
         """Interaction check callback.
 
         Description: Callback for checking if an interaction is valid and the correct user is responding.
@@ -187,13 +178,14 @@ class GameView(View):
         Description: Checks to see if user has time to answer the questions of an article.
         :Return: None
         """
-        if self.game.article_timer_active and self.game.get_article_timer() == 0:
-            self.game.end_game()
+        is_game_over = self.game.article_timer_active and self.game.get_article_timer() == 0
+        if not is_game_over:
+            return
 
-            self.client.games.pop(self.og_interaction.user.id)
+        self.game.end_game()
+        self.client.games.pop(self.og_interaction.user.id)
+        embed = create_time_up_embed(self.player, self.game)
 
-            embed = create_time_up_embed(self.player, self.game)
+        await self.og_interaction.edit_original_response(embed=embed, view=None)
 
-            await self.og_interaction.edit_original_response(embed=embed, view=None)
-
-            self.check_time.stop()
+        self.check_time.stop()

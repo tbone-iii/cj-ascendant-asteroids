@@ -48,14 +48,14 @@ class ArticleOverload(commands.Cog):
             avatar_url=url,
         )
         game.add_player(player)
-        # game.start_game()
 
         self.client.games.update({interaction.user.id: game})
 
         # Create an embed to display the player details
-        embed = game.create_start_game_embed(player)
+        embed = create_start_game_embed(player)
         return await interaction.response.send_message(
-            embed=embed, view=StartButtonView(interaction, game, self.client)
+            embed=embed,
+            view=StartButtonView(interaction, game, self.client),
         )
         embed = create_start_game_embed(player)
         return await interaction.response.send_message(
@@ -99,7 +99,9 @@ class ArticleOverload(commands.Cog):
         game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
+
         duration = game.get_game_duration()
+
         return await interaction.response.send_message(f"Current game duration: {duration}")
 
     @app_commands.command(name="show_article_timer", description="Shows the current article timer.")
@@ -112,7 +114,9 @@ class ArticleOverload(commands.Cog):
         game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
+
         timer = game.get_article_timer()
+
         return await interaction.response.send_message(f"Remaining time: {timer:.2f} seconds")
 
     @app_commands.command(name="start_new_article_challenge", description="Starts an article countdown.")
@@ -125,8 +129,10 @@ class ArticleOverload(commands.Cog):
         game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
+
         game.reset_article_timer()
         game.start_article_timer()
+
         return await interaction.response.send_message(f"New article: You have {ARTICLE_TIMER} seconds to answer.")
 
     @app_commands.command(name="increment_score", description="Increments the player's score by a given value.")
@@ -139,9 +145,11 @@ class ArticleOverload(commands.Cog):
         game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
+
         player = game.get_player(interaction.user.id)
         if player is None:
             return await interaction.response.send_message("Player not found!", ephemeral=True)
+
         player.update_score(points)
         return await interaction.response.send_message(f"Score incremented! New score: {player.get_score()}")
 
@@ -155,15 +163,18 @@ class ArticleOverload(commands.Cog):
         game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
+
         player = game.get_player(interaction.user.id)
         if player is None:
             return await interaction.response.send_message("Player not found!", ephemeral=True)
+
         new_ability = player.update_abilities_meter(value)
         meter_percentage = player.get_abilities_meter_percentage()
         if new_ability:
             return await interaction.response.send_message(
                 f"Fully Powered up! Got {new_ability.value} ability! Abilities meter now reset to {meter_percentage}%",
             )
+
         return await interaction.response.send_message(f"Abilities meter increased! Now at {meter_percentage}%")
 
     @app_commands.command(name="list_abilities", description="List all possible abilities.")
@@ -183,11 +194,14 @@ class ArticleOverload(commands.Cog):
         game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
+
         player = game.get_player(interaction.user.id)
         if player is None:
             return await interaction.response.send_message("Player not found!", ephemeral=True)
+
         abilities = player.get_abilities()
         abilities_list = ", ".join([ability.name for ability in abilities])
+
         return await interaction.response.send_message(f"Current abilities: {abilities_list}")
 
     @app_commands.command(name="add_ability", description="Add an ability to the player.")
@@ -214,10 +228,13 @@ class ArticleOverload(commands.Cog):
         game = self.client.games.get(interaction.user.id)
         if not game:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
+
         player = game.get_player(interaction.user.id)
         if not player:
             return await interaction.response.send_message("Player not found!", ephemeral=True)
+
         result = player.use_ability(ability, game)
+
         return await interaction.response.send_message(result)
 
     # ===================================================================

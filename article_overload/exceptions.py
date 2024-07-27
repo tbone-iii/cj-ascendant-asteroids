@@ -32,3 +32,11 @@ class NoArticlesFoundError(Exception):
 
 class NoSessionFoundError(Exception):
     """For when no session is found."""
+
+
+class PlayerNotFoundError(Exception):
+    """For when a player is not found."""
+
+
+class PaginationViewMissingButtonsError(Exception):
+    """For when a pagination view is missing buttons."""
