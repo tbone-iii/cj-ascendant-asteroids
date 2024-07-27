@@ -84,7 +84,7 @@ class SessionRecord(Base):
 class QuestionRecord(Base):
     """Summary model for SQLAlchemy ORM.
 
-    Includes details like the summary text and the article ID.
+    Includes details like the question text and the article ID.
     """
 
     __tablename__ = TableName.QUESTION

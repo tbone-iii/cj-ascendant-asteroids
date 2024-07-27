@@ -232,7 +232,7 @@ class DatabaseHandler:
             if total_correct is None:
                 total_correct = 0
 
-            return total_correct / total_responses or None
+            return total_correct / total_responses
 
     async def add_article_response_from_article(
         self,
@@ -311,3 +311,14 @@ class DatabaseHandler:
                 session_record.end_date = func.now()
 
             return session_record
+
+    async def get_player_score(self, user_id: int) -> int:
+        """Get the player's score based on the user ID.
+
+        :Return: `int`
+        """
+        async with self.session_factory() as session:
+            result = await session.execute(
+                select(func.sum(SessionRecord.score)).where(SessionRecord.user_id == user_id),
+            )
+            return result.scalar() or 0

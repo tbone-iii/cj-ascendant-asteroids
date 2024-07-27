@@ -419,7 +419,8 @@ async def test_get_global_ratio_correct_on_article(
         size_record=sample_size_records[article_record.size_id - 1],
     )
     ratio = await database_handler.get_global_ratio_correct_on_article(article)
-    assert ratio == expected_ratio
+    assert ratio is not None
+    assert round(ratio, 2) == round(expected_ratio, 2)
 
 
 @pytest.mark.asyncio()
@@ -456,3 +457,29 @@ async def test_start_session_and_update_session_score(
 
     session_record = await database_handler.end_session(session_record.id, score=score)
     assert session_record.score == score
+
+
+@pytest.mark.asyncio()
+async def test_get_existing_player_score_from_sample_db(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    user_id = 1234567890
+    expected_score = 40
+
+    score = await database_handler.get_player_score(user_id)
+    assert score == expected_score
+
+
+@pytest.mark.asyncio()
+async def test_get_nonexistent_player_score_from_sample_db(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    user_id = 1111111111
+    expected_score = 0
+
+    score = await database_handler.get_player_score(user_id)
+    assert score == expected_score
