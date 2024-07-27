@@ -1,10 +1,12 @@
-from discord import ButtonStyle, Interaction, SelectOption
+import time
+
+from discord import ButtonStyle, Embed, Interaction, SelectOption
 from discord.ext import tasks
 from discord.ui import Button, Select, View, button
 from utils.game_classes import Game
 
 from article_overload.bot import ArticleOverloadBot
-from article_overload.constants import MAX_INCORRECT
+from article_overload.constants import COLOR_BAD, COLOR_GOOD, CORRECT_ANSWER_POINTS, MAX_INCORRECT
 from article_overload.db.objects import Article
 from article_overload.tools.embeds import (
     create_article_embed,
@@ -158,7 +160,7 @@ class GameView(View):
             description="Please read the following article summary and use the select menu below to choose which sentence is false:",
         )
         embed.add_field(name="", value=f"{self.article.marked_up_summary}")
-        embed.add_field(name="Time remaining:", value=f"<t:{int(time.time()+self.game.article_timer)}:R>")
+        embed.add_field(name="Time remaining:", value=f"<t:{int(time.time()+self.game.article_timer)}:R>", inline=True)
 
         self.game.start_article_timer()
 

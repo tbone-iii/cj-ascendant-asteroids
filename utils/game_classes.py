@@ -284,10 +284,11 @@ class Game:
         """
         self.players.append(player)
 
-    def start_game(self) -> None:
+    def start_game(self, article_timer: float) -> None:
         """Start the game by changing the state to 'in_progress'."""
         self.state = "in_progress"
         self.start_time = time.time()
+        self.article_timer = article_timer
 
     def end_game(self) -> None:
         """End the game by changing the state to 'ended'."""

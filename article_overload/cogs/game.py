@@ -48,11 +48,15 @@ class ArticleOverload(commands.Cog):
             avatar_url=url,
         )
         game.add_player(player)
-        game.start_game()
+        # game.start_game()
 
         self.client.games.update({interaction.user.id: game})
 
         # Create an embed to display the player details
+        embed = game.create_start_game_embed(player)
+        return await interaction.response.send_message(
+            embed=embed, view=StartButtonView(interaction, game, self.client)
+        )
         embed = create_start_game_embed(player)
         return await interaction.response.send_message(
             embed=embed,

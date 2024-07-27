@@ -1,5 +1,8 @@
-from discord import ButtonStyle, Interaction
+import time
+
+from discord import ButtonStyle, Embed, Interaction
 from discord.ui import Button, View, button
+from utils.constants import DifficultyTimer
 from utils.game_classes import Game
 
 from article_overload.bot import ArticleOverloadBot
@@ -32,8 +35,8 @@ class StartButtonView(View):
         self.game = game
         self.client = client
 
-    @button(label="Start", style=ButtonStyle.blurple)
-    async def button_callback1(
+    @button(label="Easy", style=ButtonStyle.green)
+    async def easy_callback(
         self,
         interaction: Interaction,
         _: Button,
@@ -43,14 +46,87 @@ class StartButtonView(View):
         Description: Callback function for the button initialized by decorator.
         """
         msg = f"{interaction.user.name} started a game.\n"
-        self.bot.logger.info()
-        await self.og_interaction.delete_original_response(msg)
-        # Testing responses after deletion
+        self.client.logger.info(msg)
+
         await interaction.response.defer()
 
         article = await self.client.database_handler.get_random_article()
+        embed = Embed(
+            title="Article Overload!",
+            description="Please read the following article summary and use the select menu below to choose which sentence is false:",
+        )
+        embed.add_field(name="", value=f"{article.marked_up_summary}")
+        embed.add_field(
+            name="Round ends,", value=f"<t:{int(time.time() + DifficultyTimer.EASY.value)}:R>", inline=True
+        )
 
-        self.game.start_game()
+        self.game.start_game(DifficultyTimer.EASY.value)
+
+        self.game.start_article_timer()
+
+        await interaction.edit_original_response(
+            embed=embed, view=GameView(self.og_interaction, self.client, article, self.game)
+        )
+
+    @button(label="Medium", style=ButtonStyle.blurple)
+    async def medium_callback(
+        self,
+        interaction: Interaction,
+        _: Button,
+    ) -> None:
+        """Responds to button interaction.
+
+        description: callback function for the button initialized by decorator.
+        """
+        msg = f"{interaction.user.name} started a game.\n"
+        self.client.logger.info(msg)
+
+        await interaction.response.defer()
+
+        article = await self.client.database_handler.get_random_article()
+        embed = Embed(
+            title="article overload!",
+            description="please read the following article summary and use the select menu below to choose which sentence is false:",
+        )
+        embed.add_field(name="", value=f"{article.marked_up_summary}")
+        embed.add_field(
+            name="Round ends,", value=f"<t:{int(time.time() + DifficultyTimer.MEDIUM.value)}:R>", inline=True
+        )
+
+        self.game.start_game(DifficultyTimer.MEDIUM.value)
+
+        self.game.start_article_timer()
+
+        await interaction.edit_original_response(
+            embed=embed, view=GameView(self.og_interaction, self.client, article, self.game)
+        )
+
+    @button(label="Hard", style=ButtonStyle.red)
+    async def hard_callback(
+        self,
+        interaction: Interaction,
+        _: Button,
+    ) -> None:
+        """Responds to button interaction.
+
+        description: callback function for the button initialized by decorator.
+        """
+        msg = f"{interaction.user.name} started a game.\n"
+        self.client.logger.info(msg)
+
+        await interaction.response.defer()
+
+        article = await self.client.database_handler.get_random_article()
+        embed = Embed(
+            title="article overload!",
+            description="please read the following article summary and use the select menu below to choose which sentence is false:",
+        )
+        embed.add_field(name="", value=f"{article.marked_up_summary}")
+        embed.add_field(
+            name="Round ends,", value=f"<t:{int(time.time() + DifficultyTimer.HARD.value)}:R>", inline=True
+        )
+
+        self.game.start_game(DifficultyTimer.HARD.value)
 
         self.game.start_article_timer()
 

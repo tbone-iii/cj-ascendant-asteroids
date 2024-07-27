@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands, tasks
+from utils.game_classes import Game
 
 from article_overload.db.handler import DatabaseHandler
 
@@ -89,14 +90,16 @@ class ArticleOverloadBot(commands.Bot):
             try:
                 await self.load_extension(name=f"article_overload.cogs.{cog[:-3]}")
                 print(color_message(message=f"Loaded {cog[:-3]} cog", color="blue"))
-            except discord.DiscordException as e:
-                print(
-                    color_message(
-                        message=f"Failed to load {cog[:-3]} cog. Traceback: ",
-                        color="red",
-                    )
-                    + str(e),
-                )
+            #            except discord.DiscordException as e:
+            #                print(
+            #                    color_message(
+            #                        message=f"Failed to load {cog[:-3]} cog. Traceback: ",
+            #                        color="red",
+            #                    )
+            #                    + str(e),
+            #                )
+            except Exception as e:
+                print(e.with_traceback(tb))
 
         update_json_file(startup_config, "./bot_data/startup_config.json")
 
