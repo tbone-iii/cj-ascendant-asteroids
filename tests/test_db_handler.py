@@ -384,4 +384,22 @@ async def test_get_global_ratio_correct_on_article(
     assert ratio == expected_ratio
 
 
-# Same thing for user ratio correct on article
+@pytest.mark.asyncio()
+async def test_add_article_response_to_sample_db(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    article = objects.Article.create_from_article_record(
+        article_record=sample_article_records[0],
+        question_records=sample_questions_records[0],
+        size_record=sample_size_records[0],
+    )
+
+    article_response = await database_handler.add_article_response_from_article(
+        article,
+        user_id=999999999,
+        is_correct=False,
+        response="Fact B",
+    )
+    assert article_response.id is not None

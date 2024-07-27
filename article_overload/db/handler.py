@@ -219,3 +219,36 @@ class DatabaseHandler:
                 total_correct = 0
 
             return total_correct / total_responses or None
+
+    async def add_article_response_from_article(
+        self,
+        article: Article,
+        user_id: int,
+        response: str,
+        is_correct: bool,  # noqa: FBT001, Ruff doesn't like this, but the underlying DB data type is bool
+    ) -> ArticleResponseRecord:
+        """Add an article response to the database with the given parameters.
+
+        `user_id` is the Discord ID of the user who answered the question.
+        `is_correct` is a boolean value that indicates whether the user's response was correct.
+
+        The return value is not meant to be used by the client-facing application.
+
+        :Raises: `NoArticlesFoundError`
+        :Return: `ArticleResponseRecord`
+        """
+        async with self.session_factory() as session:
+            async with session.begin():
+                article_record = await session.get(ArticleRecord, article.id)
+                if article_record is None:
+                    raise NoArticlesFoundError
+
+                article_response_record = ArticleResponseRecord(
+                    user_id=user_id,
+                    response=response,
+                    correct=is_correct,
+                    answered_on=func.now(),
+                )
+                article_record.article_responses.add(article_response_record)
+
+            return article_response_record
