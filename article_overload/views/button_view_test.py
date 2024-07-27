@@ -1,9 +1,11 @@
-from discord import ButtonStyle, Interaction
+import time
+
+from discord import ButtonStyle, Embed, Interaction
 from discord.ui import Button, View, button
+from utils.constants import DifficultyTimer
 from utils.game_classes import Game
 
 from article_overload.bot import ArticleOverloadBot
-from article_overload.tools.embeds import create_article_embed
 
 from .game_view import GameView
 
@@ -32,29 +34,62 @@ class StartButtonView(View):
         self.game = game
         self.client = client
 
-    @button(label="Start", style=ButtonStyle.blurple)
-    async def button_callback1(
-        self,
-        interaction: Interaction,
-        _: Button,
-    ) -> None:
+    @button(label="Easy", style=ButtonStyle.green)
+    async def easy_callback(self, interaction: Interaction, _: Button) -> None:
         """Responds to button interaction.
 
         Description: Callback function for the button initialized by decorator.
         """
+        await self.difficulty_callback(interaction=interaction, difficulty=DifficultyTimer.EASY)
+
+    @button(label="Medium", style=ButtonStyle.blurple)
+    async def medium_callback(self, interaction: Interaction, _: Button) -> None:
+        """Responds to button interaction.
+
+        description: callback function for the button initialized by decorator.
+        """
+        await self.difficulty_callback(interaction=interaction, difficulty=DifficultyTimer.MEDIUM)
+
+    @button(label="Hard", style=ButtonStyle.red)
+    async def hard_callback(self, interaction: Interaction, _: Button) -> None:
+        """Responds to button interaction.
+
+        description: callback function for the button initialized by decorator.
+        """
+        await self.difficulty_callback(interaction=interaction, difficulty=DifficultyTimer.HARD)
+
+    async def difficulty_callback(self, interaction: Interaction, difficulty: DifficultyTimer) -> None:
+        """Responds to button interaction.
+
+        description: callback function for the button initialized by decorator.
+        """
+        msg = f"{interaction.user.name} started a game.\n"
+        self.client.logger.info(msg)
+
         await interaction.response.defer()
 
         article = await self.client.database_handler.get_random_article()
+        embed = Embed(
+            title="Article Overload!",
+            description="Please read the following article summary and "
+            "use the select menu below to choose which sentence is false:",
+        )
+        embed.add_field(name="", value=f"{article.marked_up_summary}")
+        embed.add_field(
+            name="Round ends:",
+            value=f"<t:{int(time.time() + difficulty.value)}:R>",
+            inline=True,
+        )
 
-        self.game.start_game()
-
+        self.game.start_game(article_timer=difficulty.value)
         self.game.start_article_timer()
-
-        player = self.game.get_player(self.og_interaction.user.id)
-
-        embed = create_article_embed(article, player, self.game)
 
         await interaction.edit_original_response(
             embed=embed,
-            view=GameView(self.og_interaction, article, self.game, self.client),
+            view=GameView(
+                og_interaction=self.og_interaction,
+                article=article,
+                game=self.game,
+                client=self.client,
+            ),
         )

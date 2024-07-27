@@ -11,6 +11,7 @@ from article_overload.constants import (
     INCORRECT_ANSWER_POINTS,
 )
 from article_overload.db.objects import Article
+from article_overload.exceptions import PlayerNotFoundError
 
 
 def create_success_embed(title: str = "\u200b", description: str = "\u200b") -> Embed:
@@ -143,9 +144,14 @@ def create_article_embed(article: Article, player: int | Player, game: Game) -> 
             select menu below to choose which sentence is false:\n\n{article.marked_up_summary}",
     )
     embed.add_field(name="Time Left", value=f"Ending <t:{int(game.article_timer_start+ARTICLE_TIMER)}:R>")
+
+    player_instance = game.get_player(player) if isinstance(player, int) else player
+    if player_instance is None:
+        raise PlayerNotFoundError
+
     embed.add_field(
         name="Answer Streak",
-        value=str(game.get_player(player).answer_streak if isinstance(player, int) else player.answer_streak),
+        value=str(player_instance.answer_streak),
     )
     return embed
 
@@ -222,15 +228,19 @@ def create_time_up_embed(player: int | Player, game: Game) -> Embed:
         A Discord embed object containing the player's details.
 
     """
-    player = game.get_player(player) if isinstance(player, int) else player
+    player_instance = game.get_player(player) if isinstance(player, int) else player
+    if player_instance is None:
+        raise PlayerNotFoundError
 
     return Embed(
         title="Game Over!",
-        description=f"""You ran out of time! Here are your statistics from this game:
-Score: {player.get_score()}
-Game Time: {game.get_game_duration()}
-Correct: {player.correct}
-Incorrect: {player.incorrect}""",
+        description=(
+            "You ran out of time! Here are your statistics from this game:\n"
+            f"Score: {player_instance.get_score()}\n"
+            f"Game Time: {game.get_game_duration()}\n"
+            f"Correct: {player_instance.correct}\n"
+            f"Incorrect: {player_instance.incorrect}\n"
+        ),
     )
 
 
@@ -254,13 +264,33 @@ def create_too_many_incorrect_embed(player: Player, game: Game) -> Embed:
         A Discord embed object containing the player's details.
 
     """
-    player = game.get_player(player) if isinstance(player, int) else player
-
     return Embed(
         title="Game Over!",
-        description=f"""You got too many questions wrong! Here are your statistics from this game:
-Score: {player.get_score()}
-Game Time: {game.get_game_duration()}
-Correct: {player.correct}
-Incorrect: {player.incorrect}""",
+        description=(
+            "You got too many questions wrong! Here are your statistics from this game:\n"
+            f"Score: {player.get_score()}\n"
+            f"Game Time: {game.get_game_duration()}\n"
+            f"Correct: {player.correct}\n"
+            f"Incorrect: {player.incorrect}\n"
+        ),
     )
+
+
+def get_player_from_id_or_instance(player: int | Player, game: Game) -> Player | None:
+    """Get the player instance from the player ID or the player instance.
+
+    Parameters
+    ----------
+    player : Integer | Player
+        The player_id or player object for whom the embed is to be created.
+
+    game : Game
+        The game for which the article embed should be created for
+
+    Returns
+    -------
+    Player
+        The player instance
+
+    """
+    return game.get_player(player) if isinstance(player, int) else player

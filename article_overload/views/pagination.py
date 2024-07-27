@@ -4,6 +4,8 @@ from itertools import batched
 from discord import ButtonStyle, Interaction, SelectOption
 from discord.ui import Button, Select, View, button
 
+from article_overload.exceptions import PaginationViewMissingButtonsError
+
 
 class PaginationSelect(Select):
     """Pagination select menu class."""
@@ -61,6 +63,13 @@ class PaginationView(View):
         self.data = data
         self.page = page
 
+        left_button, right_button = self.children[0], self.children[1]
+        if not isinstance(left_button, Button) or not isinstance(right_button, Button):
+            raise PaginationViewMissingButtonsError
+
+        self.L_button: Button = left_button
+        self.R_button: Button = right_button
+
         for data_chunk in batched(data, self.PAGE_SIZE):
             self.add_item(PaginationSelect(data_chunk, self.data, page))
 
@@ -99,8 +108,8 @@ class PaginationView(View):
         :Return: None
         """
         # TODO: Disabled doesn't appear to be an attribute of the children. How does this work?
-        self.children[0].disabled = self.page < 1  # type: ignore[attr-defined] # left arrow
-        self.children[1].disabled = self.page == len(self.data) - 1  # type: ignore[attr-defined] # right arrow
+        self.L_button.disabled = self.page < 1  # type: ignore[attr-defined] # left arrow
+        self.R_button.disabled = self.page == len(self.data) - 1  # type: ignore[attr-defined] # right arrow
         await interaction.response.edit_message(embed=self.data[self.page]["embed"], view=self)
 
     async def interaction_check(self, interaction: Interaction) -> bool:

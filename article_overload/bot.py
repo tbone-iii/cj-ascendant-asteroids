@@ -3,10 +3,12 @@ import os
 import platform
 import secrets
 import subprocess
+from logging import Logger
 from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands, tasks
+from utils.game_classes import Game
 
 from article_overload.db.handler import DatabaseHandler
 
@@ -25,7 +27,7 @@ database_url = f"sqlite+aiosqlite:///{database_path}"
 class ArticleOverloadBot(commands.Bot):
     """ArticleOverloadBot class."""
 
-    def __init__(self) -> None:
+    def __init__(self, logger: Logger) -> None:
         """Initialize method.
 
         Description: Initialize commands.Bot subclass
@@ -40,6 +42,9 @@ class ArticleOverloadBot(commands.Bot):
         # Stores active games
         self.games: dict[int, Game] = {}
 
+        self.logger = logger
+
+    # def start_bot(self, token: str | None, log_handler: FileHandler, log_level: int) -> None:
     def start_bot(self, token: str | None) -> None:
         """Start the bot.
 
@@ -51,18 +56,17 @@ class ArticleOverloadBot(commands.Bot):
 
         clear_console()
 
-        print(
-            color_message(
-                message=read_text_file("./assets/ascii_bot.txt"),
-                color="yellow",
-            ),
-        )
-        print(color_message(message="Bot has started", color="green"))
+        message = color_message(message=read_text_file("./assets/ascii_bot.txt"), color="yellow")
+        print(message)
+
+        message = color_message(message="Bot has started", color="green")
+        self.logger.info(message)
 
         try:
-            self.run(token)
+            self.run(token, log_handler=None)
         except InvalidTokenError:
-            print(color_message(message="Invalid Token", color="red"))
+            message = color_message(message="Invalid Token", color="red")
+            self.logger.exception(message)
 
     async def load_extensions(self) -> None:
         """Load extensions.
@@ -77,26 +81,18 @@ class ArticleOverloadBot(commands.Bot):
                 startup_config[cog[:-3]] = {"enabled": False}
 
             if not startup_config[cog[:-3]]["enabled"]:
-                print(
-                    color_message(
-                        message=f"Skipping {cog[:-3]} as it is not enabled",
-                        color="yellow",
-                    ),
-                )
+                message = color_message(message=f"Skipping {cog[:-3]} as it is not enabled", color="yellow")
+                self.logger.warning(message)
                 self.unloaded_cogs.append(cog[:-3])
                 continue
 
             try:
                 await self.load_extension(name=f"article_overload.cogs.{cog[:-3]}")
-                print(color_message(message=f"Loaded {cog[:-3]} cog", color="blue"))
+                message = color_message(message=f"Loaded {cog[:-3]} cog", color="blue")
+                self.logger.info(message)
             except discord.DiscordException as e:
-                print(
-                    color_message(
-                        message=f"Failed to load {cog[:-3]} cog. Traceback: ",
-                        color="red",
-                    )
-                    + str(e),
-                )
+                message = color_message(message=f"Failed to load {cog[:-3]} cog. Traceback: ", color="red") + str(e)
+                self.logger.exception(message)
 
         update_json_file(startup_config, "./bot_data/startup_config.json")
 
@@ -107,7 +103,8 @@ class ArticleOverloadBot(commands.Bot):
         Description: Bot listener that checks if bot is ready
         :Return: None
         """
-        print(color_message(message=f"Logged in as {self.user}!", color="green"))
+        message = color_message(message=f"Logged in as {self.user}!", color="green")
+        self.logger.info(message)
 
         await self.load_extensions()
         await self.sync_commands()
@@ -121,12 +118,8 @@ class ArticleOverloadBot(commands.Bot):
         Description: Bot listener that checks if the bot is shutting down
         :Return: None
         """
-        print(
-            color_message(
-                message=f"Shutting down {self.user}article_overload..",
-                color="green",
-            ),
-        )
+        message = color_message(message=f"Shutting down {self.user} article_overload..", color="green")
+        self.logger.info(message)
 
     @tasks.loop(seconds=5)
     async def update_presence(self) -> None:
