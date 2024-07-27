@@ -7,8 +7,8 @@ from utils.game_classes import Game, Player
 
 from article_overload.bot import ArticleOverloadBot
 from article_overload.constants import MAX_INCORRECT
-from article_overload.db.objects import Article
-from article_overload.exceptions import PlayerNotFoundError
+from article_overload.db.objects import Article, ArticleResponse
+from article_overload.exceptions import NoSessionFoundError, PlayerNotFoundError
 from article_overload.tools.embeds import (
     create_article_embed,
     create_correct_answer_embed,
@@ -120,13 +120,29 @@ class GameView(View):
 
         self.game.stop_article_timer()
 
-        if self.sentence_selection.values[0] == self.article.false_statement:  # noqa: PD011
+        selection = self.sentence_selection.values[0]  # noqa: PD011
+        is_correct = selection == self.article.false_statement
+        if is_correct:
             self.player.add_correct()
             embed = create_correct_answer_embed(self.player)
-
         else:
             self.player.add_incorrect()
             embed = create_incorrect_answer_embed(self.player, self.article)
+
+        session_id = self.game.get_session_id_for_player(self.player)
+        if session_id is None:
+            raise NoSessionFoundError
+
+        # The Article Responses are for player telemetry on performance
+        await self.client.database_handler.add_article_response_from_article(
+            article=self.article,
+            article_response=ArticleResponse(
+                user_id=self.player.player_id,
+                session_id=session_id,
+                response=selection,
+                is_correct=is_correct,
+            ),
+        )
 
         if self.player.incorrect == MAX_INCORRECT:
             self.check_time.stop()

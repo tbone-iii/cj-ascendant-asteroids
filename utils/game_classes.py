@@ -272,6 +272,13 @@ class Game:
         self.article_timer: float = ARTICLE_TIMER
         self.article_timer_start: float = 0.0
         self.article_timer_active: bool = False
+        # Metadata tracking for the game
+        self.user_id_to_session_id: dict[int, int] = {}
+
+    @property
+    def player_ids(self) -> list[int]:
+        """The IDs of the players in the game."""
+        return [player.player_id for player in self.players]
 
     def add_player(self, player: Player) -> None:
         """Add a player to the game.
@@ -283,6 +290,14 @@ class Game:
 
         """
         self.players.append(player)
+
+    def add_session_id_for_player(self, player: Player, session_id: int) -> None:
+        """Add a session ID for a player to the game."""
+        self.user_id_to_session_id.update({player.player_id: session_id})
+
+    def get_session_id_for_player(self, player: Player) -> int | None:
+        """Get the session ID for a player."""
+        return self.user_id_to_session_id.get(player.player_id, None)
 
     def start_game(self, article_timer: float) -> None:
         """Start the game by changing the state to 'in_progress'."""

@@ -19,6 +19,7 @@ class ArticleOverload(commands.Cog):
         :Return: None
         """
         self.client = client
+        self.database_handler = client.database_handler
 
     @app_commands.command(
         name="article_overload",
@@ -38,6 +39,7 @@ class ArticleOverload(commands.Cog):
                 ),
             )
 
+        # Object layer
         game = Game()
         author = interaction.user
         url = author.avatar.url if author.avatar else ""
@@ -48,19 +50,13 @@ class ArticleOverload(commands.Cog):
             avatar_url=url,
         )
         game.add_player(player)
-
         self.client.games.update({interaction.user.id: game})
 
-        # Create an embed to display the player details
+        # UI layer
         embed = create_start_game_embed(player)
         return await interaction.response.send_message(
             embed=embed,
-            view=StartButtonView(interaction, game, self.client),
-        )
-        embed = create_start_game_embed(player)
-        return await interaction.response.send_message(
-            embed=embed,
-            view=StartButtonView(interaction, game, self.client),
+            view=StartButtonView(og_interaction=interaction, game=game, client=self.client),
         )
 
     @app_commands.command(name="end_game", description=CommandDescriptions.GAME_END.value)
@@ -80,6 +76,7 @@ class ArticleOverload(commands.Cog):
             )
 
         game.end_game()
+        await self.notify_database_of_game_end_for_players(game, game.players)
         duration = game.get_game_duration()
         self.client.games.pop(interaction.user.id)
 
@@ -240,6 +237,19 @@ class ArticleOverload(commands.Cog):
     # ===================================================================
     # End of commands are meant to demo the Game mechanics
     # ===================================================================
+
+    async def notify_database_of_game_end_for_players(self, game: Game, players: list[Player]) -> None:
+        """Notify the database of the game end for all players.
+
+        Asyncio is used here to parallelize the database calls.
+
+        :Return: None
+        """
+        session_ids = [
+            session_id for player in players if (session_id := game.get_session_id_for_player(player)) is not None
+        ]
+        scores = [player.get_score() for player in players]
+        await self.database_handler.end_sessions(session_ids=session_ids, scores=scores)
 
 
 async def setup(client: ArticleOverloadBot) -> None:
