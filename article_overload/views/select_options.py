@@ -63,9 +63,9 @@ class SelectOptionsView(View):
         self.generate_select_menus(option_titles, option_values)
 
     def generate_select_menus(self, option_titles: list[str], option_values: list[str]) -> None:
-        """Callback to Create Select Menus
-        
-        Description: Creates as many select menus as needed for the options
+        """Create select menus.
+
+        Description: Callback to generate as many select menus as needed for the options
         :Return: None
         """
         for option_titles_chunk, option_values_chunk in zip(
@@ -79,7 +79,6 @@ class SelectOptionsView(View):
                     option_values_chunk,
                 ),
             )
-
 
     @button(label="Complete", style=ButtonStyle.green, row=4)
     async def submit(self, _: Interaction, __: Button) -> None:

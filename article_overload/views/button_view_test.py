@@ -1,11 +1,12 @@
 from discord import ButtonStyle, Interaction
 from discord.ui import Button, View, button
+from utils.game_classes import Game
 
 from article_overload.bot import ArticleOverloadBot
 from article_overload.tools.embeds import create_article_embed
-from utils.game_classes import Game
 
 from .game_view import GameView
+
 
 class ButtonView(View):
     """Creates a view subclass containing buttons and their callback functions.
@@ -51,6 +52,9 @@ class StartButtonView(View):
 
         player = self.game.get_player(self.og_interaction.user.id)
 
-        embed = create_article_embed(article, player.get_player_id(), self.game)
+        embed = create_article_embed(article, player, self.game)
 
-        await interaction.edit_original_response(embed=embed, view=GameView(self.og_interaction, article, player, self.game, self.client))
+        await interaction.edit_original_response(
+            embed=embed,
+            view=GameView(self.og_interaction, article, self.game, self.client),
+        )

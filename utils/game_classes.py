@@ -2,10 +2,7 @@ import secrets
 import time
 from enum import Enum
 
-import discord
-
 from article_overload.constants import CORRECT_ANSWER_POINTS, INCORRECT_ANSWER_POINTS
-from article_overload.db.objects import Article
 
 from .constants import ABILITIES_THRESHOLD, ARTICLE_TIMER, COOLDOWN_DURATION
 
