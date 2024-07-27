@@ -5,10 +5,24 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.sql.expression import func, true
 
-from article_overload.exceptions import NoArticlesFoundError, SizeRecordNotFoundError
+from article_overload.exceptions import (
+    NoArticlesFoundError,
+    NoSessionFoundError,
+    SizeRecordNotFoundError,
+)
 
-from .models import ArticleRecord, ArticleResponseRecord, QuestionRecord, SizeRecord, init_database
-from .objects import Article
+from .models import (
+    ArticleRecord,
+    ArticleResponseRecord,
+    QuestionRecord,
+    SessionRecord,
+    SizeRecord,
+    init_database,
+)
+from .objects import (
+    Article,
+    ArticleResponse,
+)
 
 T = TypeVar("T")
 
@@ -223,19 +237,27 @@ class DatabaseHandler:
     async def add_article_response_from_article(
         self,
         article: Article,
-        user_id: int,
-        response: str,
-        is_correct: bool,  # noqa: FBT001, Ruff doesn't like this, but the underlying DB data type is bool
+        article_response: ArticleResponse,
     ) -> ArticleResponseRecord:
         """Add an article response to the database with the given parameters.
 
-        `user_id` is the Discord ID of the user who answered the question.
-        `is_correct` is a boolean value that indicates whether the user's response was correct.
+        Args:
+        ----
+            article (Article): The article object for which the response is being added.
+            article_response (ArticleResponse): The article response object containing the response details.
 
-        The return value is not meant to be used by the client-facing application.
+        Raises:
+        ------
+            NoArticlesFoundError: If the article record is not found in the database.
 
-        :Raises: `NoArticlesFoundError`
-        :Return: `ArticleResponseRecord`
+        Returns:
+        -------
+            ArticleResponseRecord: The newly created article response record.
+
+        Note:
+        ----
+            This method is not meant to be used by the client-facing application.
+
         """
         async with self.session_factory() as session:
             async with session.begin():
@@ -244,11 +266,48 @@ class DatabaseHandler:
                     raise NoArticlesFoundError
 
                 article_response_record = ArticleResponseRecord(
-                    user_id=user_id,
-                    response=response,
-                    correct=is_correct,
+                    user_id=article_response.user_id,
+                    session_id=article_response.session_id,
+                    response=article_response.response,
+                    correct=article_response.is_correct,
                     answered_on=func.now(),
                 )
                 article_record.article_responses.add(article_response_record)
 
             return article_response_record
+
+    async def start_new_session(self, user_id: int) -> SessionRecord:
+        """Start a new session for a user.
+
+        :Return: `None`
+        """
+        async with self.session_factory() as session:
+            async with session.begin():
+                session_record = SessionRecord(
+                    user_id=user_id,
+                    start_date=func.now(),
+                    end_date=func.now(),
+                    score=0,
+                )
+                session.add(session_record)
+
+            return session_record
+
+    async def end_session(self, session_id: int, score: int) -> SessionRecord:
+        """End a session for a user based on the session id.
+
+        The client should not be using the return statement.
+
+        :Return: `SessionRecord`
+        """
+        async with self.session_factory() as session:
+            async with session.begin():
+                session_record = await session.get(SessionRecord, session_id)
+
+                if session_record is None:
+                    raise NoSessionFoundError
+
+                session_record.score = score
+                session_record.end_date = func.now()
+
+            return session_record

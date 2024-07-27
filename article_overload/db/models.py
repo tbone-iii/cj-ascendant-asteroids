@@ -60,10 +60,25 @@ class ArticleResponseRecord(Base):
     __tablename__ = TableName.ARTICLE_RESPONSE
     id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
     article_id: Mapped[int] = mapped_column(ForeignKey(f"{TableName.ARTICLE}.id"), nullable=False)
+    session_id: Mapped[int] = mapped_column(ForeignKey(f"{TableName.SESSION}.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(nullable=False)
     response: Mapped[str] = mapped_column(nullable=False)
     correct: Mapped[bool] = mapped_column(nullable=False)
     answered_on: Mapped[datetime] = mapped_column(nullable=False)
+
+
+class SessionRecord(Base):
+    """Session model for SQLAlchemy ORM.
+
+    Includes details like the session ID and the user ID.
+    """
+
+    __tablename__ = TableName.SESSION
+    id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(nullable=False)
+    start_date: Mapped[datetime] = mapped_column(nullable=False)
+    end_date: Mapped[datetime] = mapped_column(nullable=False)
+    score: Mapped[int] = mapped_column(nullable=False)
 
 
 class QuestionRecord(Base):

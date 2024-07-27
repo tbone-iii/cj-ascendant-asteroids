@@ -17,6 +17,7 @@ from .sample_data import (
     sample_article_records,
     sample_article_responses_records,
     sample_questions_records,
+    sample_session_records,
     sample_size_records,
 )
 from .utils import (
@@ -108,12 +109,14 @@ def setup_sample_db_file() -> DatabaseSetupInfo:
     questions_table_name = models.QuestionRecord.__tablename__
     size_table_name = models.SizeRecord.__tablename__
     article_response_table_name = models.ArticleResponseRecord.__tablename__
+    session_table_name = models.SessionRecord.__tablename__
 
     table_names = [
         article_table_name,
         questions_table_name,
         size_table_name,
         article_response_table_name,
+        session_table_name,
     ]
 
     # To prevent any risk of SQL injection attacks if somehow this test gets out to prod
@@ -157,33 +160,44 @@ def setup_sample_db_file() -> DatabaseSetupInfo:
                 id INTEGER PRIMARY KEY NOT NULL,
                 article_id INTEGER NOT NULL,
                 user_id INTEGER NOT NULL,
+                session_id INTEGER NOT NULL,
                 response TEXT NOT NULL,
                 correct BOOLEAN NOT NULL,
                 answered_on DATETIME NOT NULL
             );
         """)
 
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {session_table_name} (
+                id INTEGER PRIMARY KEY NOT NULL,
+                user_id INTEGER NOT NULL,
+                start_date DATETIME NOT NULL,
+                end_date DATETIME NOT NULL,
+                score INTEGER NOT NULL
+            );
+        """)
+
         for article in sample_article_records:
             cursor.execute(
                 f"""
-                    INSERT INTO {article_table_name}
-                    (
-                        id,
-                        url,
-                        body_text,
-                        title,
-                        author,
-                        incorrect_option_index,
-                        summary,
-                        date_published,
-                        topic,
-                        size_id
-                    )
+                INSERT INTO {article_table_name}
+                (
+                    id,
+                    url,
+                    body_text,
+                    title,
+                    author,
+                    incorrect_option_index,
+                    summary,
+                    date_published,
+                    topic,
+                    size_id
+                )
 
-                    VALUES
+                VALUES
 
-                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                """,
+                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """,
                 (
                     article.id,
                     article.url,
@@ -216,22 +230,46 @@ def setup_sample_db_file() -> DatabaseSetupInfo:
                 (size_record.id, size_record.size),
             )
 
-        for article_response_records in sample_article_responses_records:
+        for article_response_records, session_record in zip(
+            sample_article_responses_records,
+            sample_session_records,
+            strict=True,
+        ):
             for article_response_record in article_response_records:
                 cursor.execute(
                     f"""
                         INSERT INTO {article_response_table_name}
-                        (id, article_id, user_id, response, correct, answered_on) VALUES (?, ?, ?, ?, ?, ?);
-                    """,  # noqa: S608, no risk of SQL injection
+                        (id, article_id, user_id, session_id, response, correct, answered_on)
+                        VALUES
+                        (?, ?, ?, ?, ?, ?, ?);
+                    """,
                     (
                         article_response_record.id,
                         article_response_record.article_id,
                         article_response_record.user_id,
+                        session_record.id,
                         article_response_record.response,
                         article_response_record.correct,
                         article_response_record.answered_on,
                     ),
                 )
+
+        for session_record in sample_session_records:
+            cursor.execute(
+                f"""
+                    INSERT INTO {session_table_name}
+                    (id, user_id, start_date, end_date, score)
+                    VALUES
+                    (?, ?, ?, ?, ?);
+                """,
+                (
+                    session_record.id,
+                    session_record.user_id,
+                    session_record.start_date,
+                    session_record.end_date,
+                    session_record.score,
+                ),
+            )
 
     return database_setup_info
 
@@ -396,10 +434,25 @@ async def test_add_article_response_to_sample_db(
         size_record=sample_size_records[0],
     )
 
-    article_response = await database_handler.add_article_response_from_article(
-        article,
+    article_response = objects.ArticleResponse(
         user_id=999999999,
+        session_id=1,
         is_correct=False,
         response="Fact B",
     )
-    assert article_response.id is not None
+    article_response_record = await database_handler.add_article_response_from_article(article, article_response)
+    assert article_response_record.id is not None
+
+
+@pytest.mark.asyncio()
+async def test_start_session_and_update_session_score(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    score = 10
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    session_record: models.SessionRecord = await database_handler.start_new_session(user_id=999999999)
+    assert session_record.id is not None
+
+    session_record = await database_handler.end_session(session_record.id, score=score)
+    assert session_record.score == score

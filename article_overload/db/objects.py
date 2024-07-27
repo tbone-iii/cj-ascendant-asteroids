@@ -138,3 +138,15 @@ class Article(BaseModel):
         self.id = article_record.id
 
         return self
+
+
+class ArticleResponse(BaseModel):
+    """Article response object used to interface with the ORM data structure.
+
+    This object is used by the client to store the user-friendly data from the database.
+    """
+
+    user_id: int
+    session_id: int
+    response: str
+    is_correct: bool

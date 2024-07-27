@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from itertools import cycle
 
-from article_overload.db.models import ArticleRecord, ArticleResponseRecord, QuestionRecord, SizeRecord
+from article_overload.db.models import ArticleRecord, ArticleResponseRecord, QuestionRecord, SessionRecord, SizeRecord
 from article_overload.db.objects import Article
 
 from .context import article_overload  # noqa: F401
@@ -117,12 +117,30 @@ expected_global_ratio_correct_values = [
     1.0,
 ]
 
+sample_session_records = [
+    SessionRecord(
+        id=1,
+        user_id=1234567890,
+        start_date=datetime(2021, 1, 1, hour=10, minute=15, second=12, tzinfo=UTC),
+        end_date=datetime(2021, 1, 1, hour=10, minute=15, second=12, tzinfo=UTC),
+        score=0,
+    ),
+    SessionRecord(
+        id=2,
+        user_id=9876543210,
+        start_date=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
+        end_date=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
+        score=0,
+    ),
+]
+
 sample_article_responses_records = [
     [
         ArticleResponseRecord(
             id=1,
             article_id=1001,
             user_id=1234567890,
+            session_id=1,
             response="Fact A",
             correct=False,
             answered_on=datetime(2021, 1, 1, hour=10, minute=15, second=12, tzinfo=UTC),
@@ -131,6 +149,7 @@ sample_article_responses_records = [
             id=3,
             article_id=1001,
             user_id=9876543210,
+            session_id=2,
             response="Fake Fact",
             correct=True,
             answered_on=datetime(2021, 1, 1, hour=11, minute=12, second=6, tzinfo=UTC),
@@ -141,6 +160,7 @@ sample_article_responses_records = [
             id=2,
             article_id=1002,
             user_id=1234567890,
+            session_id=1,
             response="Fake Fact",
             correct=True,
             answered_on=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
@@ -149,6 +169,7 @@ sample_article_responses_records = [
             id=4,
             article_id=1002,
             user_id=9876543210,
+            session_id=2,
             response="Fake Fact",
             correct=True,
             answered_on=datetime(2021, 1, 1, hour=11, minute=13, second=19, tzinfo=UTC),
