@@ -35,6 +35,19 @@ class SentenceSelect(Select):
             ],
         )
 
+
+class SentenceSelect(Select):
+    CHAR_LIMIT = 100
+
+    def __init__(self, sentences: list[str]):
+        super().__init__(
+            placeholder="Select a sentence",
+            options=[
+                SelectOption(label=question[: self.CHAR_LIMIT], value=question[: self.CHAR_LIMIT])
+                for question in sentences
+            ],
+        )
+
     async def callback(self, interaction: Interaction) -> None:
         """Select callback.
 
@@ -139,6 +152,13 @@ class GameView(View):
         self.remove_item(self.sentence_selection)
         self.sentence_selection = SentenceSelect(self.article.questions)
         self.add_item(self.sentence_selection)
+
+        embed = Embed(
+            title="Article Overload!",
+            description="Please read the following article summary and use the select menu below to choose which sentence is false:",
+        )
+        embed.add_field(name="", value=f"{self.article.marked_up_summary}")
+        embed.add_field(name="Time remaining:", value=f"<t:{int(time.time()+self.game.article_timer)}:R>")
 
         self.game.start_article_timer()
 
