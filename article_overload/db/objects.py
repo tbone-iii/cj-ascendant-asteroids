@@ -158,3 +158,12 @@ class Score(BaseModel):
     user_id: int
     score: int
     latest_played: datetime
+
+    @computed_field
+    @property
+    def latest_played_formatted(self) -> str:
+        """Return a user-friendly date string.
+
+        :Return: `str`
+        """
+        return self.latest_played.strftime("%B %d, %Y")
