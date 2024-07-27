@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from itertools import cycle
 
-from article_overload.db.models import ArticleRecord, QuestionRecord, SizeRecord
+from article_overload.db.models import ArticleRecord, ArticleResponseRecord, QuestionRecord, SizeRecord
 from article_overload.db.objects import Article
 
 from .context import article_overload  # noqa: F401
@@ -112,6 +112,50 @@ sample_questions_records = [
     ],
 ]
 
+expected_global_ratio_correct_values = [
+    0.5,
+    1.0,
+]
+
+sample_article_responses_records = [
+    [
+        ArticleResponseRecord(
+            id=1,
+            article_id=1001,
+            user_id=1234567890,
+            response="Fact A",
+            correct=False,
+            answered_on=datetime(2021, 1, 1, hour=10, minute=15, second=12, tzinfo=UTC),
+        ),
+        ArticleResponseRecord(
+            id=3,
+            article_id=1001,
+            user_id=9876543210,
+            response="Fake Fact",
+            correct=True,
+            answered_on=datetime(2021, 1, 1, hour=11, minute=12, second=6, tzinfo=UTC),
+        ),
+    ],
+    [
+        ArticleResponseRecord(
+            id=2,
+            article_id=1002,
+            user_id=1234567890,
+            response="Fake Fact",
+            correct=True,
+            answered_on=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
+        ),
+        ArticleResponseRecord(
+            id=4,
+            article_id=1002,
+            user_id=9876543210,
+            response="Fake Fact",
+            correct=True,
+            answered_on=datetime(2021, 1, 1, hour=11, minute=13, second=19, tzinfo=UTC),
+        ),
+    ],
+]
+
 sample_article_records = [
     ArticleRecord(
         id=1001,
@@ -125,6 +169,7 @@ sample_article_records = [
         date_published=datetime(2005, 4, 20, tzinfo=UTC),
         topic="General",
         size_id=1,
+        article_responses=sample_article_responses_records[0],
     ),
     ArticleRecord(
         id=1002,
@@ -138,5 +183,6 @@ sample_article_records = [
         date_published=datetime(2021, 3, 3, tzinfo=UTC),
         topic="Sports",
         size_id=2,
+        article_responses=sample_article_responses_records[1],
     ),
 ]

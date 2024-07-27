@@ -28,7 +28,7 @@ class Article(BaseModel):
     author: str
     date_published: datetime
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def false_statement(self) -> str:
         """Return the incorrect question from the list of questions.
@@ -37,7 +37,7 @@ class Article(BaseModel):
         """
         return self.questions[self.incorrect_option_index]
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def true_statements(self) -> list[str]:
         """Return a list of correct statements from the list of questions.

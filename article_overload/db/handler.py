@@ -1,13 +1,13 @@
 from collections.abc import Sequence
 from typing import TypeVar
 
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
-from sqlalchemy.sql.expression import func
+from sqlalchemy.sql.expression import func, true
 
 from article_overload.exceptions import NoArticlesFoundError, SizeRecordNotFoundError
 
-from .models import ArticleRecord, QuestionRecord, SizeRecord, init_database
+from .models import ArticleRecord, ArticleResponseRecord, QuestionRecord, SizeRecord, init_database
 from .objects import Article
 
 T = TypeVar("T")
@@ -184,3 +184,38 @@ class DatabaseHandler:
                 question_records=list(question_records),
                 size_record=size_record,
             )
+
+    async def get_global_ratio_correct_on_article(self, article: Article) -> float | None:
+        """Get the global ratio correct on an article.
+
+        If the article has never been answered before, return None.
+
+        :Return: `float` | None
+        """
+        async with self.session_factory() as session:
+            result = await session.execute(
+                select(func.count())
+                .select_from(ArticleResponseRecord)
+                .where(ArticleResponseRecord.article_id == article.id),
+            )
+            total_responses = result.scalar()
+
+            if total_responses == 0 or total_responses is None:
+                return None
+
+            result = await session.execute(
+                select(func.count())
+                .select_from(ArticleResponseRecord)
+                .where(
+                    and_(
+                        ArticleResponseRecord.article_id == article.id,
+                        ArticleResponseRecord.correct == true(),
+                    ),
+                ),
+            )
+            total_correct = result.scalar()
+
+            if total_correct is None:
+                total_correct = 0
+
+            return total_correct / total_responses or None

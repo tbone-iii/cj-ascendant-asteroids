@@ -11,9 +11,11 @@ from sqlalchemy import Engine, Row, create_engine, text
 
 from .exceptions import InvalidTableNameError
 from .sample_data import (
+    expected_global_ratio_correct_values,
     prebuild_article,
     prebuild_articles,
     sample_article_records,
+    sample_article_responses_records,
     sample_questions_records,
     sample_size_records,
 )
@@ -105,11 +107,13 @@ def setup_sample_db_file() -> DatabaseSetupInfo:
     article_table_name = models.ArticleRecord.__tablename__
     questions_table_name = models.QuestionRecord.__tablename__
     size_table_name = models.SizeRecord.__tablename__
+    article_response_table_name = models.ArticleResponseRecord.__tablename__
 
     table_names = [
         article_table_name,
         questions_table_name,
         size_table_name,
+        article_response_table_name,
     ]
 
     # To prevent any risk of SQL injection attacks if somehow this test gets out to prod
@@ -145,6 +149,17 @@ def setup_sample_db_file() -> DatabaseSetupInfo:
             CREATE TABLE IF NOT EXISTS {size_table_name} (
                 id INTEGER PRIMARY KEY NOT NULL,
                 size TEXT NOT NULL
+            );
+        """)
+
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {article_response_table_name} (
+                id INTEGER PRIMARY KEY NOT NULL,
+                article_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                response TEXT NOT NULL,
+                correct BOOLEAN NOT NULL,
+                answered_on DATETIME NOT NULL
             );
         """)
 
@@ -200,6 +215,23 @@ def setup_sample_db_file() -> DatabaseSetupInfo:
                 """,  # noqa: S608, no risk of SQL injection
                 (size_record.id, size_record.size),
             )
+
+        for article_response_records in sample_article_responses_records:
+            for article_response_record in article_response_records:
+                cursor.execute(
+                    f"""
+                        INSERT INTO {article_response_table_name}
+                        (id, article_id, user_id, response, correct, answered_on) VALUES (?, ?, ?, ?, ?, ?);
+                    """,  # noqa: S608, no risk of SQL injection
+                    (
+                        article_response_record.id,
+                        article_response_record.article_id,
+                        article_response_record.user_id,
+                        article_response_record.response,
+                        article_response_record.correct,
+                        article_response_record.answered_on,
+                    ),
+                )
 
     return database_setup_info
 
@@ -283,18 +315,18 @@ async def test_async_bulk_insert_multiple_articles_verify_by_reading_database_sy
 
 
 @pytest.mark.asyncio()
-@pytest.mark.parametrize("article", sample_article_records)
+@pytest.mark.parametrize("article_record", sample_article_records)
 async def test_get_article_by_id_from_sample_db(
-    article: objects.Article,
+    article_record: models.ArticleRecord,
     setup_sample_db_file: DatabaseSetupInfo,
 ) -> None:
     database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
 
-    assert article.id is not None, "Sanity check."
-    retrieved_article = await database_handler.get_article_by_id(article.id)
+    assert article_record.id is not None, "Sanity check."
+    retrieved_article = await database_handler.get_article_by_id(article_record.id)
 
     assert retrieved_article is not None
-    assert retrieved_article.id == article.id
+    assert retrieved_article.id == article_record.id
 
 
 @pytest.mark.asyncio()
@@ -319,3 +351,37 @@ async def test_get_random_article_from_sample_db(
     assert retrieved_article is not None
     assert retrieved_article.id is not None
     assert retrieved_article.id in [article.id for article in sample_article_records]
+
+
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    (
+        "article_record",
+        "question_records",
+        "expected_ratio",
+    ),
+    zip(
+        sample_article_records,
+        sample_questions_records,
+        expected_global_ratio_correct_values,
+        strict=True,
+    ),
+)
+async def test_get_global_ratio_correct_on_article(
+    setup_sample_db_file: DatabaseSetupInfo,
+    article_record: models.ArticleRecord,
+    question_records: list[models.QuestionRecord],
+    expected_ratio: float,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    article = objects.Article.create_from_article_record(
+        article_record=article_record,
+        question_records=question_records,
+        size_record=sample_size_records[article_record.size_id - 1],
+    )
+    ratio = await database_handler.get_global_ratio_correct_on_article(article)
+    assert ratio == expected_ratio
+
+
+# Same thing for user ratio correct on article
