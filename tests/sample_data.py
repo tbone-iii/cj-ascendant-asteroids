@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from itertools import cycle
 
 from article_overload.db.models import ArticleRecord, ArticleResponseRecord, QuestionRecord, SessionRecord, SizeRecord
-from article_overload.db.objects import Article
+from article_overload.db.objects import Article, Score
 
 from .context import article_overload  # noqa: F401
 
@@ -137,6 +137,19 @@ expected_global_ratio_correct_values = [
     1 / 2,  # one correct out of two
     2 / 3,  # two correct out of three
     0 / 1,  # none correct out of zero
+]
+
+expected_scores = [
+    Score(
+        user_id=1234567890,
+        score=40,
+        latest_played=datetime(2021, 9, 9, hour=5, minute=12, second=5, tzinfo=UTC),
+    ),
+    Score(
+        user_id=9876543210,
+        score=0,
+        latest_played=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
+    ),
 ]
 
 sample_session_records = [

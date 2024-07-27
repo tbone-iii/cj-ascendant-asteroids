@@ -150,3 +150,11 @@ class ArticleResponse(BaseModel):
     session_id: int
     response: str
     is_correct: bool
+
+
+class Score(BaseModel):
+    """Score object used to store the user's score."""
+
+    user_id: int
+    score: int
+    latest_played: datetime

@@ -12,6 +12,7 @@ from sqlalchemy import Engine, Row, create_engine, text
 from .exceptions import InvalidTableNameError
 from .sample_data import (
     expected_global_ratio_correct_values,
+    expected_scores,
     prebuild_article,
     prebuild_articles,
     sample_article_records,
@@ -483,3 +484,15 @@ async def test_get_nonexistent_player_score_from_sample_db(
 
     score = await database_handler.get_player_score(user_id)
     assert score == expected_score
+
+
+@pytest.mark.asyncio()
+async def test_get_top_n_scores_from_sample_db(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    n = 10
+    top_scores: list[objects.Score] = await database_handler.get_top_n_scores(n=n)
+
+    assert top_scores == expected_scores
