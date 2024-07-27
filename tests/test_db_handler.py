@@ -496,3 +496,17 @@ async def test_get_top_n_scores_from_sample_db(
     top_scores: list[objects.Score] = await database_handler.get_top_n_scores(n=n)
 
     assert top_scores == expected_scores
+
+
+@pytest.mark.asyncio()
+async def test_get_player_lifetime_ratio_correctness(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    user_id = 1234567890
+    expected_ratio = 0.25
+
+    ratio = await database_handler.get_player_lifetime_ratio_correctness(user_id)
+    assert ratio is not None
+    assert round(ratio, 2) == round(expected_ratio, 2)

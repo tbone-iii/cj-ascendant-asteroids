@@ -371,3 +371,37 @@ class DatabaseHandler:
                 )
                 for query_result in query_results
             ]
+
+    async def get_player_lifetime_ratio_correctness(self, user_id: int) -> float | None:
+        """Get the player's lifetime ratio of correctness.
+
+        If None is returned, the player has not answered any questions.
+
+        :Return: `float` | None
+        """
+        async with self.session_factory() as session:
+            result = await session.execute(
+                select(func.count())
+                .select_from(ArticleResponseRecord)
+                .join(SessionRecord)
+                .where(SessionRecord.user_id == user_id),
+            )
+            total_responses = result.scalar()
+
+            if total_responses == 0 or total_responses is None:
+                return total_responses
+
+            result = await session.execute(
+                select(func.count())
+                .select_from(ArticleResponseRecord)
+                .join(SessionRecord)
+                .where(
+                    and_(
+                        SessionRecord.user_id == user_id,
+                        ArticleResponseRecord.correct == true(),
+                    ),
+                ),
+            )
+            total_correct = result.scalar() or 0.0
+
+            return total_correct / total_responses
