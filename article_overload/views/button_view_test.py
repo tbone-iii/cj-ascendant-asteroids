@@ -84,6 +84,11 @@ class StartButtonView(View):
         self.game.start_game(article_timer=difficulty.value)
         self.game.start_article_timer()
 
+        # The Sessions table in the database tracks users and scores
+        session_records = await self.client.database_handler.start_new_sessions(self.game.player_ids)
+        for player, session_record in zip(self.game.players, session_records, strict=False):
+            self.game.add_session_id_for_player(player=player, session_id=session_record.id)
+
         await interaction.edit_original_response(
             embed=embed,
             view=GameView(

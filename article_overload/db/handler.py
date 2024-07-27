@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Sequence
 from typing import TypeVar
 
@@ -293,6 +294,14 @@ class DatabaseHandler:
 
             return session_record
 
+    async def start_new_sessions(self, user_ids: list[int]) -> list[SessionRecord]:
+        """Start multiple sessions at once asynchronously.
+
+        :Return: `list[SessionRecord]`
+        """
+        coros = [self.start_new_session(user_id) for user_id in user_ids]
+        return await asyncio.gather(*coros)
+
     async def end_session(self, session_id: int, score: int) -> SessionRecord:
         """End a session for a user based on the session id.
 
@@ -311,6 +320,17 @@ class DatabaseHandler:
                 session_record.end_date = func.now()
 
             return session_record
+
+    async def end_sessions(self, session_ids: list[int], scores: list[int]) -> list[SessionRecord]:
+        """End multiple sessions at once asynchronously.
+
+        :Return: `list[SessionRecord]`
+        """
+        coros = [
+            self.end_session(session_id=session_id, score=score)
+            for session_id, score in zip(session_ids, scores, strict=False)
+        ]
+        return await asyncio.gather(*coros)
 
     async def get_player_score(self, user_id: int) -> int:
         """Get the player's score based on the user ID.
