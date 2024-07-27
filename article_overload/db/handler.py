@@ -23,6 +23,7 @@ from .models import (
 from .objects import (
     Article,
     ArticleResponse,
+    Score,
 )
 
 T = TypeVar("T")
@@ -328,7 +329,7 @@ class DatabaseHandler:
         """
         coros = [
             self.end_session(session_id=session_id, score=score)
-            for session_id, score in zip(session_ids, scores, strict=False)
+            for session_id, score in zip(session_ids, scores, strict=True)
         ]
         return await asyncio.gather(*coros)
 
@@ -342,3 +343,31 @@ class DatabaseHandler:
                 select(func.sum(SessionRecord.score)).where(SessionRecord.user_id == user_id),
             )
             return result.scalar() or 0
+
+    async def get_top_n_scores(self, n: int) -> list[Score]:
+        """Get the top N scores.
+
+        :Return: `list[Score]`
+        """
+        async with self.session_factory() as session:
+            subquery = (
+                select(
+                    SessionRecord.user_id,
+                    func.sum(SessionRecord.score).label("score"),
+                    func.max(SessionRecord.end_date).label("latest_played"),
+                )
+                .group_by(SessionRecord.user_id)
+                .order_by(func.sum(SessionRecord.score).desc(), func.max(SessionRecord.end_date).desc())
+                .limit(n)
+            )
+            result = await session.execute(subquery)
+            query_results = result.mappings()
+
+            return [
+                Score(
+                    user_id=query_result.user_id,
+                    score=query_result.score,
+                    latest_played=query_result.latest_played,
+                )
+                for query_result in query_results
+            ]
