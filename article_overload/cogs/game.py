@@ -5,7 +5,7 @@ from utils.game_classes import AbilityType, Game, Player
 
 from article_overload.bot import ArticleOverloadBot
 from article_overload.tools.desc import CommandDescriptions
-from article_overload.tools.utils import create_warning_embed
+from article_overload.tools.embeds import create_start_game_embed, create_warning_embed
 from article_overload.views.button_view_test import StartButtonView
 
 
@@ -19,7 +19,6 @@ class ArticleOverload(commands.Cog):
         :Return: None
         """
         self.client = client
-        self.games: dict[int, Game] = {}
 
     @app_commands.command(
         name="article_overload",
@@ -31,7 +30,7 @@ class ArticleOverload(commands.Cog):
         Description: Starts the game
         :Return: None
         """
-        if interaction.user.id in self.games:
+        if interaction.user.id in self.client.games:
             return await interaction.response.send_message(
                 embed=create_warning_embed(
                     title="Already In Game!",
@@ -51,11 +50,14 @@ class ArticleOverload(commands.Cog):
         game.add_player(player)
         game.start_game()
 
-        self.games.update({interaction.user.id: game})
+        self.client.games.update({interaction.user.id: game})
 
         # Create an embed to display the player details
-        embed = game.create_start_game_embed(player)
-        return await interaction.response.send_message(embed=embed, view=StartButtonView(interaction, embed))
+        embed = create_start_game_embed(player)
+        return await interaction.response.send_message(
+            embed=embed,
+            view=StartButtonView(interaction, game, self.client),
+        )
 
     @app_commands.command(name="end_game", description=CommandDescriptions.GAME_END.value)
     async def end_game(self, interaction: Interaction) -> None:
@@ -64,7 +66,7 @@ class ArticleOverload(commands.Cog):
         Description: Ends the game
         :Return: None
         """
-        game = self.games.get(interaction.user.id, None)
+        game = self.client.games.get(interaction.user.id, None)
         if game is None:
             return await interaction.response.send_message(
                 embed=create_warning_embed(
@@ -75,7 +77,7 @@ class ArticleOverload(commands.Cog):
 
         game.end_game()
         duration = game.get_game_duration()
-        self.games.pop(interaction.user.id)
+        self.client.games.pop(interaction.user.id)
 
         return await interaction.response.send_message(f"Game ended! Duration: {duration}")
 
@@ -90,7 +92,7 @@ class ArticleOverload(commands.Cog):
         Description: Shows the current game duration.
         :Return: None
         """
-        game = self.games.get(interaction.user.id)
+        game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
         duration = game.get_game_duration()
@@ -103,7 +105,7 @@ class ArticleOverload(commands.Cog):
         Description: Shows the current article timer.
         :Return: None
         """
-        game = self.games.get(interaction.user.id)
+        game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
         timer = game.get_article_timer()
@@ -116,7 +118,7 @@ class ArticleOverload(commands.Cog):
         Description: Starts a new article challenge with a 15-second timer.
         :Return: None
         """
-        game = self.games.get(interaction.user.id)
+        game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
         game.reset_article_timer()
@@ -130,7 +132,7 @@ class ArticleOverload(commands.Cog):
         Description: Increments the player's score by a given value.
         :Return: None
         """
-        game = self.games.get(interaction.user.id)
+        game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
         player = game.get_player(interaction.user.id)
@@ -146,7 +148,7 @@ class ArticleOverload(commands.Cog):
         Description: Increases the player's abilities meter by a given value.
         :Return: None
         """
-        game = self.games.get(interaction.user.id)
+        game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
         player = game.get_player(interaction.user.id)
@@ -174,7 +176,7 @@ class ArticleOverload(commands.Cog):
         Description: Shows the player's current abilities.
         :Return: None
         """
-        game = self.games.get(interaction.user.id)
+        game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
         player = game.get_player(interaction.user.id)
@@ -187,7 +189,7 @@ class ArticleOverload(commands.Cog):
     @app_commands.command(name="add_ability", description="Add an ability to the player.")
     async def add_ability(self, interaction: Interaction, ability_name: str) -> None:
         """Bot command to add an ability to the player."""
-        game = self.games.get(interaction.user.id)
+        game = self.client.games.get(interaction.user.id)
         if game is None:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
 
@@ -205,7 +207,7 @@ class ArticleOverload(commands.Cog):
     @app_commands.command(name="use_ability", description="Uses a player's ability.")
     async def use_ability(self, interaction: Interaction, ability: AbilityType) -> None:
         """Bot command to use a player's ability."""
-        game = self.games.get(interaction.user.id)
+        game = self.client.games.get(interaction.user.id)
         if not game:
             return await interaction.response.send_message("Game not found!", ephemeral=True)
         player = game.get_player(interaction.user.id)

@@ -3,6 +3,7 @@ import os
 import platform
 import secrets
 import subprocess
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands, tasks
@@ -12,6 +13,9 @@ from article_overload.db.handler import DatabaseHandler
 from .constants import IGNORE_FILES, INTENTS, NEWS_STATIONS, OWNER_IDS
 from .exceptions import InvalidTokenError, NoTokenProvidedError
 from .tools.utils import color_message, get_json_file, read_text_file, update_json_file
+
+if TYPE_CHECKING:
+    from utils.game_classes import Game
 
 os.chdir("article_overload")  # TODO: Change this to pathlib usage
 database_path = "./assets/article_overload.db"
@@ -32,6 +36,9 @@ class ArticleOverloadBot(commands.Bot):
 
         # This is a blocking call that occurs once during the bot's initialization.
         self.database_handler = asyncio.run(DatabaseHandler.create(database_url))
+
+        # Stores active games
+        self.games: dict[int, Game] = {}
 
     def start_bot(self, token: str | None) -> None:
         """Start the bot.

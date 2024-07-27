@@ -1,6 +1,7 @@
 """Objects are based upon the ORM models based on classes provided by SQL alchemy."""
 
 from datetime import datetime
+from re import sub
 from typing import Self
 
 from pydantic import BaseModel, computed_field
@@ -44,6 +45,40 @@ class Article(BaseModel):
         :Return: `list[str]`
         """
         return [question for index, question in enumerate(self.questions) if index != self.incorrect_option_index]
+
+    @computed_field
+    @property
+    def marked_up_summary(self) -> str:
+        """Return the marked up version of the summary text (version containing the sentence options bolded).
+
+        :Return: `str`
+        """
+        marked_up_text = ""
+        n = 0
+        for sentence in sub(r"[<>[\]]", "", self.summary).splitlines():
+            if sentence.strip() in self.questions:
+                n += 1
+                marked_up_text += f"**`{n}. {sentence.strip()}`** "
+
+            else:
+                marked_up_text += sentence.strip().strip('"') + " "
+
+        return marked_up_text[:-1]
+
+    @computed_field
+    @property
+    def highlight_answer_in_summary(self) -> str:
+        """Return the summary text with the false statement bolded with the other statements striked out.
+
+        :Return: `str`
+        """
+        marked_up_text = self.marked_up_summary
+
+        for index, sentence in enumerate(self.questions):
+            if sentence in self.true_statements:
+                marked_up_text = marked_up_text.replace(f"**`{index+1}. {sentence}`**", f"~~`{index+1}. {sentence}`~~")
+
+        return marked_up_text
 
     @classmethod
     def create_from_article_record(

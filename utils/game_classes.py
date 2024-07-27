@@ -2,7 +2,7 @@ import secrets
 import time
 from enum import Enum
 
-import discord
+from article_overload.constants import CORRECT_ANSWER_POINTS, INCORRECT_ANSWER_POINTS
 
 from .constants import ABILITIES_THRESHOLD, ARTICLE_TIMER, COOLDOWN_DURATION
 
@@ -92,6 +92,9 @@ class Player:
         self.display_name = display_name
         self.avatar_url = avatar_url
         self.score = 0
+        self.correct = 0
+        self.incorrect = 0
+        self.answer_streak = 0
         self.abilities = []
         self.abilities_meter = 0
         self.abilities_threshold = ABILITIES_THRESHOLD
@@ -143,6 +146,18 @@ class Player:
 
         """
         self.score += points
+
+    def add_correct(self) -> None:
+        """Add points for correct answer and update streaks."""
+        self.score += CORRECT_ANSWER_POINTS
+        self.correct += 1
+        self.answer_streak += 1
+
+    def add_incorrect(self) -> None:
+        """Remove points for incorrect answer and update streaks."""
+        self.score -= INCORRECT_ANSWER_POINTS
+        self.incorrect += 1
+        self.answer_streak = 0
 
     def get_display_name(self) -> str:
         """Return the player's display name.
@@ -297,34 +312,6 @@ class Game:
             if player.player_id == player_id:
                 return player
         return None
-
-    def create_start_game_embed(self, player: Player) -> discord.Embed:
-        """Create a Discord embed for the start of the game.
-
-        Parameters
-        ----------
-        player : Player
-            The player for whom the embed is to be created.
-
-        Returns
-        -------
-        discord.Embed
-            A Discord embed object containing the player's details.
-
-        """
-        embed = discord.Embed(
-            title="Welcome to Article Overload",
-            color=discord.Color.green(),
-        )
-        embed.add_field(name="Player ID", value=player.get_player_id(), inline=False)
-        embed.add_field(
-            name="Display Name",
-            value=player.get_display_name(),
-            inline=False,
-        )
-        embed.add_field(name="Score", value=player.get_score(), inline=False)
-        embed.set_thumbnail(url=player.get_avatar_url())
-        return embed
 
     def get_game_duration(self) -> str:
         """Return the duration of the game as a formatted string."""
