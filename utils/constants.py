@@ -1,5 +1,5 @@
 # Time specific constants
-ARTICLE_TIMER = 10.0
+ARTICLE_TIMER = 60.0
 EXTEND_TIMER_VALUE = 10.0
 
 # Abilities specific constants
