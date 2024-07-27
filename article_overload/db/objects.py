@@ -28,7 +28,7 @@ class Article(BaseModel):
     author: str
     date_published: datetime
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def false_statement(self) -> str:
         """Return the incorrect question from the list of questions.
@@ -37,7 +37,7 @@ class Article(BaseModel):
         """
         return self.questions[self.incorrect_option_index]
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def true_statements(self) -> list[str]:
         """Return a list of correct statements from the list of questions.
@@ -138,3 +138,15 @@ class Article(BaseModel):
         self.id = article_record.id
 
         return self
+
+
+class ArticleResponse(BaseModel):
+    """Article response object used to interface with the ORM data structure.
+
+    This object is used by the client to store the user-friendly data from the database.
+    """
+
+    user_id: int
+    session_id: int
+    response: str
+    is_correct: bool

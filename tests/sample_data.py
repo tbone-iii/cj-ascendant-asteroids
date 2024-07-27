@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from itertools import cycle
 
-from article_overload.db.models import ArticleRecord, QuestionRecord, SizeRecord
+from article_overload.db.models import ArticleRecord, ArticleResponseRecord, QuestionRecord, SessionRecord, SizeRecord
 from article_overload.db.objects import Article
 
 from .context import article_overload  # noqa: F401
@@ -81,16 +81,31 @@ sample_articles = [
         author="Author",
         date_published=datetime(2021, 3, 3, tzinfo=UTC),
     ),
+    Article(
+        id=None,
+        url="https://example3.com",
+        body_text="This is a long body text. " * 100,
+        summary="A new car. A new house. A new chair.",
+        questions=["Oranges", "Apples", "Bananas", "Dogs"],
+        incorrect_option_index=3,
+        title="Example Title",
+        topic="Entertainment",
+        size="Medium",
+        author="Author",
+        date_published=datetime(2022, 2, 2, tzinfo=UTC),
+    ),
 ]
 
 sample_true_statements = [
     ["Fact A", "Fact B", "Fact C"],
     ["Fact A", "Fact C", "Fact D"],
+    ["Oranges", "Apples", "Bananas"],
 ]
 
 sample_false_statements = [
     "Fake Fact",
     "Fake Fact",
+    "Dogs",
 ]
 
 sample_size_records = [
@@ -110,6 +125,105 @@ sample_questions_records = [
         QuestionRecord(id=5, article_id=1002, question="cherry"),
         QuestionRecord(id=6, article_id=1002, question="dog"),
     ],
+    [
+        QuestionRecord(id=7, article_id=1003, question="Oranges"),
+        QuestionRecord(id=8, article_id=1003, question="Apples"),
+        QuestionRecord(id=9, article_id=1003, question="Bananas"),
+        QuestionRecord(id=10, article_id=1003, question="Dog"),
+    ],
+]
+
+expected_global_ratio_correct_values = [
+    1 / 2,  # one correct out of two
+    2 / 3,  # two correct out of three
+    0 / 1,  # none correct out of zero
+]
+
+sample_session_records = [
+    SessionRecord(
+        id=1,
+        user_id=1234567890,
+        start_date=datetime(2021, 1, 1, hour=10, minute=15, second=12, tzinfo=UTC),
+        end_date=datetime(2021, 1, 1, hour=10, minute=15, second=12, tzinfo=UTC),
+        score=15,
+    ),
+    SessionRecord(
+        id=2,
+        user_id=9876543210,
+        start_date=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
+        end_date=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
+        score=0,
+    ),
+    SessionRecord(
+        id=3,
+        user_id=1234567890,
+        start_date=datetime(2021, 9, 9, hour=5, minute=12, second=5, tzinfo=UTC),
+        end_date=datetime(2021, 9, 9, hour=5, minute=12, second=5, tzinfo=UTC),
+        score=25,
+    ),
+]
+
+sample_article_responses_records = [
+    [
+        ArticleResponseRecord(
+            id=1,
+            article_id=1001,
+            user_id=1234567890,
+            session_id=1,
+            response="Fact A",
+            correct=False,
+            answered_on=datetime(2021, 1, 1, hour=10, minute=15, second=12, tzinfo=UTC),
+        ),
+        ArticleResponseRecord(
+            id=3,
+            article_id=1001,
+            user_id=9876543210,
+            session_id=2,
+            response="Fake Fact",
+            correct=True,
+            answered_on=datetime(2021, 1, 1, hour=11, minute=12, second=6, tzinfo=UTC),
+        ),
+    ],
+    [
+        ArticleResponseRecord(
+            id=2,
+            article_id=1002,
+            user_id=1234567890,
+            session_id=1,
+            response="Fake Fact",
+            correct=True,
+            answered_on=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
+        ),
+        ArticleResponseRecord(
+            id=4,
+            article_id=1002,
+            user_id=9876543210,
+            session_id=2,
+            response="Fake Fact",
+            correct=True,
+            answered_on=datetime(2021, 1, 1, hour=11, minute=13, second=19, tzinfo=UTC),
+        ),
+    ],
+    [
+        ArticleResponseRecord(
+            id=5,
+            article_id=1003,
+            user_id=1234567890,
+            session_id=3,
+            response="Dogs",
+            correct=False,
+            answered_on=datetime(2021, 9, 9, hour=5, minute=12, second=5, tzinfo=UTC),
+        ),
+        ArticleResponseRecord(
+            id=6,
+            article_id=1002,
+            user_id=1234567890,
+            session_id=3,
+            response="Dogs",
+            correct=False,
+            answered_on=datetime(2021, 9, 9, hour=5, minute=12, second=6, tzinfo=UTC),
+        ),
+    ],
 ]
 
 sample_article_records = [
@@ -125,6 +239,7 @@ sample_article_records = [
         date_published=datetime(2005, 4, 20, tzinfo=UTC),
         topic="General",
         size_id=1,
+        article_responses=sample_article_responses_records[0],
     ),
     ArticleRecord(
         id=1002,
@@ -138,5 +253,20 @@ sample_article_records = [
         date_published=datetime(2021, 3, 3, tzinfo=UTC),
         topic="Sports",
         size_id=2,
+        article_responses=sample_article_responses_records[1],
+    ),
+    ArticleRecord(
+        id=1003,
+        url="https://example3.com",
+        body_text="This is a long body text. " * 100,
+        summary="A new orange. A new apple. A new banana. A new dog.",
+        questions=sample_questions_records[2],
+        incorrect_option_index=3,
+        title="Example Title",
+        author="Author",
+        date_published=datetime(2022, 2, 2, tzinfo=UTC),
+        topic="Entertainment",
+        size_id=3,
+        article_responses=sample_article_responses_records[2],
     ),
 ]

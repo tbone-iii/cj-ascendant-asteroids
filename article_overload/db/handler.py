@@ -1,14 +1,28 @@
 from collections.abc import Sequence
 from typing import TypeVar
 
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
-from sqlalchemy.sql.expression import func
+from sqlalchemy.sql.expression import func, true
 
-from article_overload.exceptions import NoArticlesFoundError, SizeRecordNotFoundError
+from article_overload.exceptions import (
+    NoArticlesFoundError,
+    NoSessionFoundError,
+    SizeRecordNotFoundError,
+)
 
-from .models import ArticleRecord, QuestionRecord, SizeRecord, init_database
-from .objects import Article
+from .models import (
+    ArticleRecord,
+    ArticleResponseRecord,
+    QuestionRecord,
+    SessionRecord,
+    SizeRecord,
+    init_database,
+)
+from .objects import (
+    Article,
+    ArticleResponse,
+)
 
 T = TypeVar("T")
 
@@ -184,3 +198,127 @@ class DatabaseHandler:
                 question_records=list(question_records),
                 size_record=size_record,
             )
+
+    async def get_global_ratio_correct_on_article(self, article: Article) -> float | None:
+        """Get the global ratio correct on an article.
+
+        If the article has never been answered before, return None.
+
+        :Return: `float` | None
+        """
+        async with self.session_factory() as session:
+            result = await session.execute(
+                select(func.count())
+                .select_from(ArticleResponseRecord)
+                .where(ArticleResponseRecord.article_id == article.id),
+            )
+            total_responses = result.scalar()
+
+            if total_responses == 0 or total_responses is None:
+                return None
+
+            result = await session.execute(
+                select(func.count())
+                .select_from(ArticleResponseRecord)
+                .where(
+                    and_(
+                        ArticleResponseRecord.article_id == article.id,
+                        ArticleResponseRecord.correct == true(),
+                    ),
+                ),
+            )
+            total_correct = result.scalar()
+
+            if total_correct is None:
+                total_correct = 0
+
+            return total_correct / total_responses
+
+    async def add_article_response_from_article(
+        self,
+        article: Article,
+        article_response: ArticleResponse,
+    ) -> ArticleResponseRecord:
+        """Add an article response to the database with the given parameters.
+
+        Args:
+        ----
+            article (Article): The article object for which the response is being added.
+            article_response (ArticleResponse): The article response object containing the response details.
+
+        Raises:
+        ------
+            NoArticlesFoundError: If the article record is not found in the database.
+
+        Returns:
+        -------
+            ArticleResponseRecord: The newly created article response record.
+
+        Note:
+        ----
+            This method is not meant to be used by the client-facing application.
+
+        """
+        async with self.session_factory() as session:
+            async with session.begin():
+                article_record = await session.get(ArticleRecord, article.id)
+                if article_record is None:
+                    raise NoArticlesFoundError
+
+                article_response_record = ArticleResponseRecord(
+                    user_id=article_response.user_id,
+                    session_id=article_response.session_id,
+                    response=article_response.response,
+                    correct=article_response.is_correct,
+                    answered_on=func.now(),
+                )
+                article_record.article_responses.add(article_response_record)
+
+            return article_response_record
+
+    async def start_new_session(self, user_id: int) -> SessionRecord:
+        """Start a new session for a user.
+
+        :Return: `None`
+        """
+        async with self.session_factory() as session:
+            async with session.begin():
+                session_record = SessionRecord(
+                    user_id=user_id,
+                    start_date=func.now(),
+                    end_date=func.now(),
+                    score=0,
+                )
+                session.add(session_record)
+
+            return session_record
+
+    async def end_session(self, session_id: int, score: int) -> SessionRecord:
+        """End a session for a user based on the session id.
+
+        The client should not be using the return statement.
+
+        :Return: `SessionRecord`
+        """
+        async with self.session_factory() as session:
+            async with session.begin():
+                session_record = await session.get(SessionRecord, session_id)
+
+                if session_record is None:
+                    raise NoSessionFoundError
+
+                session_record.score = score
+                session_record.end_date = func.now()
+
+            return session_record
+
+    async def get_player_score(self, user_id: int) -> int:
+        """Get the player's score based on the user ID.
+
+        :Return: `int`
+        """
+        async with self.session_factory() as session:
+            result = await session.execute(
+                select(func.sum(SessionRecord.score)).where(SessionRecord.user_id == user_id),
+            )
+            return result.scalar() or 0

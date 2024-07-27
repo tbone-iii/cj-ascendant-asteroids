@@ -28,3 +28,7 @@ class SizeRecordNotFoundError(Exception):
 
 class NoArticlesFoundError(Exception):
     """For when no articles are found."""
+
+
+class NoSessionFoundError(Exception):
+    """For when no session is found."""

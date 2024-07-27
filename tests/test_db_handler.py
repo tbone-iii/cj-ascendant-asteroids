@@ -11,10 +11,13 @@ from sqlalchemy import Engine, Row, create_engine, text
 
 from .exceptions import InvalidTableNameError
 from .sample_data import (
+    expected_global_ratio_correct_values,
     prebuild_article,
     prebuild_articles,
     sample_article_records,
+    sample_article_responses_records,
     sample_questions_records,
+    sample_session_records,
     sample_size_records,
 )
 from .utils import (
@@ -105,11 +108,15 @@ def setup_sample_db_file() -> DatabaseSetupInfo:
     article_table_name = models.ArticleRecord.__tablename__
     questions_table_name = models.QuestionRecord.__tablename__
     size_table_name = models.SizeRecord.__tablename__
+    article_response_table_name = models.ArticleResponseRecord.__tablename__
+    session_table_name = models.SessionRecord.__tablename__
 
     table_names = [
         article_table_name,
         questions_table_name,
         size_table_name,
+        article_response_table_name,
+        session_table_name,
     ]
 
     # To prevent any risk of SQL injection attacks if somehow this test gets out to prod
@@ -148,27 +155,49 @@ def setup_sample_db_file() -> DatabaseSetupInfo:
             );
         """)
 
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {article_response_table_name} (
+                id INTEGER PRIMARY KEY NOT NULL,
+                article_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                session_id INTEGER NOT NULL,
+                response TEXT NOT NULL,
+                correct BOOLEAN NOT NULL,
+                answered_on DATETIME NOT NULL
+            );
+        """)
+
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {session_table_name} (
+                id INTEGER PRIMARY KEY NOT NULL,
+                user_id INTEGER NOT NULL,
+                start_date DATETIME NOT NULL,
+                end_date DATETIME NOT NULL,
+                score INTEGER NOT NULL
+            );
+        """)
+
         for article in sample_article_records:
             cursor.execute(
                 f"""
-                    INSERT INTO {article_table_name}
-                    (
-                        id,
-                        url,
-                        body_text,
-                        title,
-                        author,
-                        incorrect_option_index,
-                        summary,
-                        date_published,
-                        topic,
-                        size_id
-                    )
+                INSERT INTO {article_table_name}
+                (
+                    id,
+                    url,
+                    body_text,
+                    title,
+                    author,
+                    incorrect_option_index,
+                    summary,
+                    date_published,
+                    topic,
+                    size_id
+                )
 
-                    VALUES
+                VALUES
 
-                    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                """,
+                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """,
                 (
                     article.id,
                     article.url,
@@ -199,6 +228,47 @@ def setup_sample_db_file() -> DatabaseSetupInfo:
                     (id, size) VALUES (?, ?);
                 """,  # noqa: S608, no risk of SQL injection
                 (size_record.id, size_record.size),
+            )
+
+        for article_response_records, session_record in zip(
+            sample_article_responses_records,
+            sample_session_records,
+            strict=True,
+        ):
+            for article_response_record in article_response_records:
+                cursor.execute(
+                    f"""
+                        INSERT INTO {article_response_table_name}
+                        (id, article_id, user_id, session_id, response, correct, answered_on)
+                        VALUES
+                        (?, ?, ?, ?, ?, ?, ?);
+                    """,
+                    (
+                        article_response_record.id,
+                        article_response_record.article_id,
+                        article_response_record.user_id,
+                        session_record.id,
+                        article_response_record.response,
+                        article_response_record.correct,
+                        article_response_record.answered_on,
+                    ),
+                )
+
+        for session_record in sample_session_records:
+            cursor.execute(
+                f"""
+                    INSERT INTO {session_table_name}
+                    (id, user_id, start_date, end_date, score)
+                    VALUES
+                    (?, ?, ?, ?, ?);
+                """,
+                (
+                    session_record.id,
+                    session_record.user_id,
+                    session_record.start_date,
+                    session_record.end_date,
+                    session_record.score,
+                ),
             )
 
     return database_setup_info
@@ -283,18 +353,18 @@ async def test_async_bulk_insert_multiple_articles_verify_by_reading_database_sy
 
 
 @pytest.mark.asyncio()
-@pytest.mark.parametrize("article", sample_article_records)
+@pytest.mark.parametrize("article_record", sample_article_records)
 async def test_get_article_by_id_from_sample_db(
-    article: objects.Article,
+    article_record: models.ArticleRecord,
     setup_sample_db_file: DatabaseSetupInfo,
 ) -> None:
     database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
 
-    assert article.id is not None, "Sanity check."
-    retrieved_article = await database_handler.get_article_by_id(article.id)
+    assert article_record.id is not None, "Sanity check."
+    retrieved_article = await database_handler.get_article_by_id(article_record.id)
 
     assert retrieved_article is not None
-    assert retrieved_article.id == article.id
+    assert retrieved_article.id == article_record.id
 
 
 @pytest.mark.asyncio()
@@ -319,3 +389,97 @@ async def test_get_random_article_from_sample_db(
     assert retrieved_article is not None
     assert retrieved_article.id is not None
     assert retrieved_article.id in [article.id for article in sample_article_records]
+
+
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    (
+        "article_record",
+        "question_records",
+        "expected_ratio",
+    ),
+    zip(
+        sample_article_records,
+        sample_questions_records,
+        expected_global_ratio_correct_values,
+        strict=True,
+    ),
+)
+async def test_get_global_ratio_correct_on_article(
+    setup_sample_db_file: DatabaseSetupInfo,
+    article_record: models.ArticleRecord,
+    question_records: list[models.QuestionRecord],
+    expected_ratio: float,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    article = objects.Article.create_from_article_record(
+        article_record=article_record,
+        question_records=question_records,
+        size_record=sample_size_records[article_record.size_id - 1],
+    )
+    ratio = await database_handler.get_global_ratio_correct_on_article(article)
+    assert ratio is not None
+    assert round(ratio, 2) == round(expected_ratio, 2)
+
+
+@pytest.mark.asyncio()
+async def test_add_article_response_to_sample_db(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    article = objects.Article.create_from_article_record(
+        article_record=sample_article_records[0],
+        question_records=sample_questions_records[0],
+        size_record=sample_size_records[0],
+    )
+
+    article_response = objects.ArticleResponse(
+        user_id=999999999,
+        session_id=1,
+        is_correct=False,
+        response="Fact B",
+    )
+    article_response_record = await database_handler.add_article_response_from_article(article, article_response)
+    assert article_response_record.id is not None
+
+
+@pytest.mark.asyncio()
+async def test_start_session_and_update_session_score(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    score = 10
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    session_record: models.SessionRecord = await database_handler.start_new_session(user_id=999999999)
+    assert session_record.id is not None
+
+    session_record = await database_handler.end_session(session_record.id, score=score)
+    assert session_record.score == score
+
+
+@pytest.mark.asyncio()
+async def test_get_existing_player_score_from_sample_db(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    user_id = 1234567890
+    expected_score = 40
+
+    score = await database_handler.get_player_score(user_id)
+    assert score == expected_score
+
+
+@pytest.mark.asyncio()
+async def test_get_nonexistent_player_score_from_sample_db(
+    setup_sample_db_file: DatabaseSetupInfo,
+) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+
+    user_id = 1111111111
+    expected_score = 0
+
+    score = await database_handler.get_player_score(user_id)
+    assert score == expected_score
