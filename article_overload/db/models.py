@@ -13,6 +13,9 @@ class TableName:
     ARTICLE = "article"
     QUESTION = "question"
     SIZE = "size"
+    ARTICLE_RESPONSE = "article_response"
+    USER = "user"
+    SESSION = "session"
 
 
 class Base(AsyncAttrs, DeclarativeBase):
