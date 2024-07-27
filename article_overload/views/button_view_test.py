@@ -1,13 +1,9 @@
-import asyncio
-from random import randint
-
-from discord import ButtonStyle, Embed, Interaction
+from discord import ButtonStyle, Interaction
 from discord.ui import Button, View, button
 
 from article_overload.bot import ArticleOverloadBot
+from article_overload.tools.embeds import create_article_embed
 from utils.game_classes import Game
-
-from .pagination import PaginationView
 
 from .game_view import GameView
 
@@ -48,10 +44,13 @@ class StartButtonView(View):
         await interaction.response.defer()
 
         article = await self.client.database_handler.get_random_article()
-        embed = Embed(title="Article Overload!", description=f"Please read the following article summary and use the select menu below to choose which sentence is false:\n\n{article.marked_up_summary}")
 
         self.game.start_game()
 
         self.game.start_article_timer()
 
-        await interaction.edit_original_response(embed=embed, view=GameView(self.og_interaction, self.client, article, self.game))
+        player = self.game.get_player(self.og_interaction.user.id)
+
+        embed = create_article_embed(article, player.get_player_id(), self.game)
+
+        await interaction.edit_original_response(embed=embed, view=GameView(self.og_interaction, article, player, self.game, self.client))

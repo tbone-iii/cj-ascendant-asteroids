@@ -15,7 +15,7 @@ from discord.ext import commands
 from article_overload.bot import ArticleOverloadBot
 from article_overload.mention_target import MentionTarget
 from article_overload.tools.desc import CommandDescriptions
-from article_overload.tools.utils import create_success_embed, create_warning_embed
+from article_overload.tools.embeds import create_success_embed, create_warning_embed
 from article_overload.views import ButtonView, ConfirmDeny, InputButton, PaginationView, SelectOptionsView
 from article_overload.views.confirm_deny import ConfirmDenyOptions
 

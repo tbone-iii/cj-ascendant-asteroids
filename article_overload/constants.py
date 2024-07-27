@@ -35,4 +35,4 @@ INTENTS: Intents = Intents(message_content=True)
 IGNORE_FILES = ["__init__.py"]
 
 CORRECT_ANSWER_POINTS = 10
-INCORRECT_ANSWER_POINTS = 0
+INCORRECT_ANSWER_POINTS = 5

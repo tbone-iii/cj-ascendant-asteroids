@@ -5,7 +5,7 @@ from utils.game_classes import AbilityType, Game, Player
 
 from article_overload.bot import ArticleOverloadBot
 from article_overload.tools.desc import CommandDescriptions
-from article_overload.tools.utils import create_warning_embed
+from article_overload.tools.embeds import create_warning_embed, create_start_game_embed
 from article_overload.views.button_view_test import StartButtonView
 
 
@@ -53,7 +53,7 @@ class ArticleOverload(commands.Cog):
         self.client.games.update({interaction.user.id: game})
 
         # Create an embed to display the player details
-        embed = game.create_start_game_embed(player)
+        embed = create_start_game_embed(player)
         return await interaction.response.send_message(embed=embed, view=StartButtonView(interaction, game, self.client))
 
     @app_commands.command(name="end_game", description=CommandDescriptions.GAME_END.value)
