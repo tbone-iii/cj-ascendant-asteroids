@@ -95,7 +95,7 @@ class Player:
         self.correct = 0
         self.incorrect = 0
         self.answer_streak = 0
-        self.abilities = []
+        self.abilities: list[AbilityType] = []
         self.abilities_meter = 0
         self.abilities_threshold = ABILITIES_THRESHOLD
 
