@@ -167,3 +167,24 @@ class Score(BaseModel):
         :Return: `str`
         """
         return self.latest_played.strftime("%B %d, %Y")
+
+
+class UserTopicStat(BaseModel):
+    """Object used to store the user's score."""
+
+    total_correct: int
+    total_responses: int
+    topic: str | None  # None corresponds to all topics
+    user_id: int | None  # None corresponds to all users
+
+    @computed_field
+    @property
+    def ratio_correct(self) -> float:
+        """Return the ratio of correct responses to total responses."""
+        return round(self.total_correct / self.total_responses, 2)
+
+    @computed_field
+    @property
+    def percentage_correct(self) -> float:
+        """Return the percentage of correct responses."""
+        return round(self.total_correct / self.total_responses * 100, 2)

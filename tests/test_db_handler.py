@@ -1,4 +1,5 @@
 import itertools as it
+import logging
 import sqlite3
 from collections.abc import AsyncGenerator, Sequence
 from pathlib import Path
@@ -21,11 +22,14 @@ from .sample_data import (
     sample_session_records,
     sample_size_records,
 )
+from .sqlalchemy_log import sqlalchemy_logger
 from .utils import (
     TEST_DIRECTORY,
     DatabaseSetupInfo,
     remove_local_db_files,
 )
+
+sqlalchemy_logger.setLevel(logging.DEBUG)
 
 HandlerEngine = tuple[handler.DatabaseHandler, Engine]
 SetupData = AsyncGenerator[HandlerEngine, None]
@@ -85,7 +89,7 @@ async def setup_blank_db() -> SetupData:
     """
     database_setup_info = generate_db_setup_info()
 
-    engine = create_engine(database_setup_info.sync_database_url)
+    engine = create_engine(database_setup_info.sync_database_url, echo=False)
     database_handler = await handler.DatabaseHandler.create(database_setup_info.database_url)
     yield database_handler, engine
 
@@ -499,14 +503,77 @@ async def test_get_top_n_scores_from_sample_db(
 
 
 @pytest.mark.asyncio()
-async def test_get_player_lifetime_ratio_correctness(
+async def test_get_player_player_topic_stat(setup_sample_db_file: DatabaseSetupInfo) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+    user_id = 1234567890
+
+    user_topic_stat = await database_handler.get_player_topic_stat(user_id)
+
+    assert user_topic_stat == objects.UserTopicStat(
+        total_correct=1,
+        total_responses=4,
+        topic=None,
+        user_id=user_id,
+    )
+
+
+@pytest.mark.asyncio()
+async def test_get_player_topic_stat_by_topic_that_exists(setup_sample_db_file: DatabaseSetupInfo) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+    user_id = 1234567890
+
+    topic = "Sports"
+    user_topic_stat = await database_handler.get_player_topic_stat(user_id, topic=topic)
+    assert user_topic_stat == objects.UserTopicStat(
+        total_correct=1,
+        total_responses=2,
+        topic=topic,
+        user_id=user_id,
+    )
+
+
+@pytest.mark.asyncio()
+async def test_get_player_topic_stat_by_topic_that_does_not_exist(setup_sample_db_file: DatabaseSetupInfo) -> None:
+    database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
+    user_id = 1234567890
+
+    user_topic_stat = await database_handler.get_player_topic_stat(user_id, topic="Insane Topic!")
+
+    assert user_topic_stat == objects.UserTopicStat(
+        total_correct=0,
+        total_responses=0,
+        topic="Insane Topic!",
+        user_id=user_id,
+    )
+
+
+@pytest.mark.asyncio()
+async def test_get_player_topics_order(
     setup_sample_db_file: DatabaseSetupInfo,
 ) -> None:
     database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
 
     user_id = 1234567890
-    expected_ratio = 0.25
+    expected_topics = [
+        objects.UserTopicStat(
+            total_correct=1,
+            total_responses=2,
+            topic="Sports",
+            user_id=user_id,
+        ),
+        objects.UserTopicStat(
+            total_correct=0,
+            total_responses=1,
+            topic="Entertainment",
+            user_id=user_id,
+        ),
+        objects.UserTopicStat(
+            total_correct=0,
+            total_responses=1,
+            topic="General",
+            user_id=user_id,
+        ),
+    ]
 
-    ratio = await database_handler.get_player_lifetime_ratio_correctness(user_id)
-    assert ratio is not None
-    assert round(ratio, 2) == round(expected_ratio, 2)
+    user_topic_stats = await database_handler.get_player_topic_stats_in_order(user_id)
+    assert user_topic_stats == expected_topics

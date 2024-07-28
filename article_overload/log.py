@@ -26,10 +26,10 @@ sqlalchemy_log_handler = logging.handlers.RotatingFileHandler(
     maxBytes=32 * 1024 * 1024,  # 32 MiB
 )
 sqlalchemy_log_handler.setFormatter(formatter)
-sqlalchemy_log_handler.setLevel(logging.INFO)
+sqlalchemy_log_handler.setLevel(logging.DEBUG)
 
 sqlalchemy_logger = logging.getLogger("sqlalchemy.engine")
-sqlalchemy_logger.setLevel(logging.INFO)
+sqlalchemy_logger.setLevel(logging.DEBUG)
 sqlalchemy_logger.addHandler(sqlalchemy_log_handler)
 
 # Ours

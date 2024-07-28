@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import Sequence
 from typing import TypeVar
 
-from sqlalchemy import and_, select
+from sqlalchemy import Float, Subquery, and_, case, cast, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.sql.expression import func, true
 
@@ -24,6 +24,7 @@ from .objects import (
     Article,
     ArticleResponse,
     Score,
+    UserTopicStat,
 )
 
 T = TypeVar("T")
@@ -372,36 +373,160 @@ class DatabaseHandler:
                 for query_result in query_results
             ]
 
-    async def get_player_lifetime_ratio_correctness(self, user_id: int) -> float | None:
-        """Get the player's lifetime ratio of correctness.
+    async def get_player_topic_stat(self, user_id: int, topic: str | None = None) -> UserTopicStat:
+        """Get the player's topic stats for a specific topic or ALL topics if None is passed.
 
-        If None is returned, the player has not answered any questions.
+        :Return: `TopicStat`
+        """
+        count_subquery = self._get_count_query_for_user_grouped_by_topic(user_id)
+        correct_count_subquery = self._get_correct_count_query_for_user_grouped_by_topic(user_id)
 
-        :Return: `float` | None
+        # None topic means to look at ALL topics
+        if topic is None:
+            # Look at all topics and sum them up across the user ID by querying count query
+            count_query = select(func.sum(count_subquery.columns.total_responses).label("total_responses"))
+            correct_count_query = select(func.sum(correct_count_subquery.columns.total_correct).label("total_correct"))
+        else:
+            count_query = select(count_subquery.columns.total_responses).where(count_subquery.columns.topic == topic)
+            correct_count_query = select(correct_count_subquery.columns.total_correct).where(
+                correct_count_subquery.columns.topic == topic,
+            )
+
+        async with self.session_factory() as session:
+            total_responses_result = await session.execute(count_query)
+            correct_count_result = await session.execute(correct_count_query)
+
+            total_responses = total_responses_result.scalar() or 0
+            total_correct = correct_count_result.scalar() or 0
+
+            return UserTopicStat(
+                user_id=user_id,
+                total_correct=total_correct,
+                total_responses=total_responses,
+                topic=topic,
+            )
+
+    async def get_player_topic_stats_in_order(self, user_id: int) -> list[UserTopicStat]:
+        """Get the player's topic stats for all topics, ranked by correctness ratio.
+
+        If the correctness ratios match, the topics should be ordered by the number of responses.
         """
         async with self.session_factory() as session:
-            result = await session.execute(
-                select(func.count())
-                .select_from(ArticleResponseRecord)
+            count_query = (
+                select(
+                    ArticleResponseRecord.user_id,
+                    ArticleRecord.topic,
+                    func.count().label("total_responses"),
+                )
+                .join(ArticleResponseRecord)
                 .join(SessionRecord)
-                .where(SessionRecord.user_id == user_id),
-            )
-            total_responses = result.scalar()
+                .where(ArticleResponseRecord.user_id == user_id)
+                .group_by(ArticleRecord.topic, ArticleResponseRecord.user_id)
+            ).subquery()
 
-            if total_responses == 0 or total_responses is None:
-                return total_responses
-
-            result = await session.execute(
-                select(func.count())
-                .select_from(ArticleResponseRecord)
+            count_correct_query = (
+                select(
+                    ArticleResponseRecord.user_id,
+                    ArticleRecord.topic,
+                    func.count().label("total_correct"),
+                )
+                .join(ArticleResponseRecord)
                 .join(SessionRecord)
                 .where(
                     and_(
-                        SessionRecord.user_id == user_id,
+                        ArticleResponseRecord.user_id == user_id,
                         ArticleResponseRecord.correct == true(),
                     ),
+                )
+                .group_by(ArticleRecord.topic, ArticleResponseRecord.user_id)
+            ).subquery()
+
+            result_query = (
+                select(
+                    count_query.columns.user_id,
+                    count_query.columns.topic,
+                    count_query.columns.total_responses,
+                    count_correct_query.columns.total_correct,
+                    case(
+                        (
+                            count_query.columns.total_responses != 0,
+                            cast(count_correct_query.columns.total_correct, Float)
+                            / count_query.columns.total_responses,
+                        ),
+                        else_=0,
+                    ).label("correctness_ratio"),
+                )
+                .select_from(count_query)
+                .outerjoin(
+                    count_correct_query,
+                    onclause=and_(
+                        count_query.columns.user_id == count_correct_query.columns.user_id,
+                        count_query.columns.topic == count_correct_query.columns.topic,
+                    ),
+                )
+                .order_by(
+                    case(
+                        (
+                            count_query.columns.total_responses != 0,
+                            cast(count_correct_query.columns.total_correct, Float)
+                            / count_query.columns.total_responses,
+                        ),
+                        else_=0,
+                    ).desc(),
+                    count_query.columns.total_responses.desc(),
+                )
+            )
+
+            result = await session.execute(result_query)
+            return [
+                UserTopicStat(
+                    topic=query_result.topic,
+                    total_correct=(query_result.total_correct if query_result.total_correct is not None else 0),
+                    total_responses=query_result.total_responses,
+                    user_id=query_result.user_id,
+                )
+                for query_result in result.mappings()
+            ]
+
+    def _get_count_query_for_user_grouped_by_topic(self, user_id: int) -> Subquery:
+        """Get the count query for a user.
+
+        Equivalent to a SQL group by on the user ID and topic.
+
+        :Return: `select`
+        """
+        return (
+            select(
+                ArticleResponseRecord.user_id,
+                ArticleRecord.topic,
+                func.count().label("total_responses"),
+            )
+            .join(ArticleResponseRecord)
+            .join(SessionRecord)
+            .where(ArticleResponseRecord.user_id == user_id)
+            .group_by(ArticleRecord.topic, ArticleResponseRecord.user_id)
+        ).subquery()
+
+    def _get_correct_count_query_for_user_grouped_by_topic(self, user_id: int) -> Subquery:
+        """Get the correct count query for a user.
+
+        Equivalent to a SQL group by on the user ID and topic.
+
+        :Return: `select`
+        """
+        return (
+            select(
+                ArticleResponseRecord.user_id,
+                ArticleRecord.topic,
+                func.count().label("total_correct"),
+            )
+            .join(ArticleResponseRecord)
+            .join(SessionRecord)
+            .where(
+                and_(
+                    ArticleResponseRecord.user_id == user_id,
+                    ArticleResponseRecord.correct == true(),
                 ),
             )
-            total_correct = result.scalar() or 0.0
-
-            return total_correct / total_responses
+            .group_by(ArticleRecord.topic, ArticleResponseRecord.user_id)
+        ).subquery()
