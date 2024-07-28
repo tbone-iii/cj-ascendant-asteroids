@@ -19,7 +19,7 @@ from .tools.utils import color_message, get_json_file, read_text_file, update_js
 if TYPE_CHECKING:
     from article_overload.game_classes import Game
 
-os.chdir("article_overload")  # TODO: Change this to pathlib usage
+os.chdir("article_overload")
 database_path = "./assets/article_overload.db"
 database_url = f"sqlite+aiosqlite:///{database_path}"
 

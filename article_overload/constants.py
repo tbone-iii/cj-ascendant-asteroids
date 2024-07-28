@@ -64,7 +64,19 @@ EXTEND_TIMER_VALUE = 10.0
 SCORE_BOARD_SPACING_SIZE = 20
 SCORE_BOARD_NUM_SCORES_TO_SHOW = 10
 SCORE_BOARD_COLOR = Color.gold()
-CHAR_LIMIT = 97
+ABSOLUTE_CHAR_LIMIT = 100
+RELATIVE_CHAR_LIMIT = 97
+DIGIT_TO_EMOJI = {
+    1: "1️⃣",
+    2: "2️⃣",
+    3: "3️⃣",
+    4: "4️⃣",
+    5: "5️⃣",
+    6: "6️⃣",
+    7: "7️⃣",
+    8: "8️⃣",
+    9: "9️⃣",
+}
 
 
 # Image constants
@@ -74,5 +86,7 @@ class ImageURLs:
 
     SUCCESS = "https://media3.giphy.com/media/CaS9NNso512WJ4po0t/giphy.gif?cid=ecf05e47mgm8u6fljfxl5d5g0s01tp94qgn9exfwqvlpi3id&rid=giphy.gif&ct=s"
     WARNING = "https://c.tenor.com/26pNa498OS0AAAAi/warning-joypixels.gif"
+    NO_FINGER = "https://cdn.pixabay.com/animation/2022/11/03/15/02/15-02-00-156_256.gif"
     ERROR = "https://i.gifer.com/origin/bf/bf2d25254a2808835e20c9d698d75f28_w200.gif"
     ANIMATED_TROPHY = "https://cdn.pixabay.com/animation/2023/06/13/15/13/15-13-22-874_256.gif"
+    NOT_ALLOWED_SIGN = "https://cdn.pixabay.com/animation/2022/12/21/03/47/03-47-43-799_256.gif"

@@ -67,8 +67,8 @@ class PaginationView(View):
         if not isinstance(left_button, Button) or not isinstance(right_button, Button):
             raise PaginationViewMissingButtonsError
 
-        self.L_button: Button = left_button
-        self.R_button: Button = right_button
+        self.left_button: Button = left_button
+        self.right_button: Button = right_button
 
         for data_chunk in batched(data, self.PAGE_SIZE):
             self.add_item(PaginationSelect(data_chunk, self.data, page))
@@ -107,9 +107,8 @@ class PaginationView(View):
         Description: Callback to update embed and page content.
         :Return: None
         """
-        # TODO: Disabled doesn't appear to be an attribute of the children. How does this work?
-        self.L_button.disabled = self.page < 1  # type: ignore[attr-defined] # left arrow
-        self.R_button.disabled = self.page == len(self.data) - 1  # type: ignore[attr-defined] # right arrow
+        self.left_button.disabled = self.page < 1
+        self.right_button.disabled = self.page == len(self.data) - 1
         await interaction.response.edit_message(embed=self.data[self.page]["embed"], view=self)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
