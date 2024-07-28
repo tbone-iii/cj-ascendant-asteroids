@@ -169,7 +169,6 @@ class GameView(View):
         self.player = player
         self.round_end_time = 0
         self.ability_buttons_list = []
-        self.player.async_loop_abilities_meter.start()
 
         self.sentence: Sentence | None = None  # TODO: None? Rethink
 
