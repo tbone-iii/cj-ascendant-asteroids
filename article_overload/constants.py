@@ -90,3 +90,4 @@ class ImageURLs:
     ERROR = "https://i.gifer.com/origin/bf/bf2d25254a2808835e20c9d698d75f28_w200.gif"
     ANIMATED_TROPHY = "https://cdn.pixabay.com/animation/2023/06/13/15/13/15-13-22-874_256.gif"
     NOT_ALLOWED_SIGN = "https://cdn.pixabay.com/animation/2022/12/21/03/47/03-47-43-799_256.gif"
+    HURRY = "https://i.gifer.com/BfMp.gif"

@@ -1,3 +1,4 @@
+from itertools import batched
 from typing import Any
 
 from discord import (
@@ -16,6 +17,7 @@ from article_overload.constants import (
     ImageURLs,
 )
 from article_overload.db.objects import UserTopicStat
+from article_overload.views import PaginationView
 
 InteractionChannel = Any
 
@@ -42,28 +44,63 @@ class UserStatsCog(commands.GroupCog, group_name="view", group_description="View
         Description: Shows the scores of the top ten players.
         :Return: None
         """
-        embed = Embed(title="Scoreboard", color=SCORE_BOARD_COLOR)
-
+        size = SCORE_BOARD_SPACING_SIZE + 3
         header_text = (
-            f"`{_left_padded_text("Name", SCORE_BOARD_SPACING_SIZE)}"
-            f"{_left_padded_text("Score", SCORE_BOARD_SPACING_SIZE)}"
-            f"{_left_padded_text("Last Seen", SCORE_BOARD_SPACING_SIZE)}`\n"
+            f"`{_left_padded_text("Name", size)}"
+            f"{_left_padded_text("Score", size)}"
+            f"{_left_padded_text("Last Seen", size)}`\n"
         )
 
-        score_text = ""
+        data: list[dict[str, str]] = []
+
         player_scores = await self.client.database_handler.get_top_n_scores(n=SCORE_BOARD_NUM_SCORES_TO_SHOW)
-        for score_object in player_scores:
-            user = await self.client.fetch_user(score_object.user_id)
-            score_text += (
-                f"`{_left_padded_text(user.name, SCORE_BOARD_SPACING_SIZE)}"
-                f"{_left_padded_text(str(score_object.score), SCORE_BOARD_SPACING_SIZE)}"
-                f"{_left_padded_text(score_object.latest_played_formatted, SCORE_BOARD_SPACING_SIZE)}`\n"
+
+        stat_embedses = []
+        for index, score_objects in enumerate(batched(player_scores, 4)):
+            embed = Embed()
+            embed.add_field(name="Leaderboard", value=header_text)
+            stat_embedses.append(embed)
+            string = ""
+            for score_object in score_objects:
+                try:
+                    name = (await self.client.fetch_user(score_object.user_id)).name
+                except:
+                    name = f"Little Bro #{index}"
+
+                string += (
+                    f"`{_left_padded_text(name, size)}"
+                    f"{_left_padded_text(str(score_object.score), size)}"
+                    f"{_left_padded_text(score_object.latest_played_formatted, size)}`\n"
+                )
+
+            embed.add_field(
+                name="",
+                value=string,
+                inline=False,
             )
+        image_embedses = []
+        for index, score_objects in enumerate(batched(player_scores, 4)):
+            embeds = []
+            for score_object in score_objects:
+                try:
+                    user = await self.client.fetch_user(score_object.user_id)
 
-        embed.add_field(name=header_text, value="")
-        embed.add_field(name="", value=score_text, inline=False)
+                except:
+                    user = user
 
-        await interaction.response.send_message(embed=embed)
+                embed = Embed(url="https://example.com")
+                embed.set_image(url=user.avatar.url if user.avatar else user.default_avatar)
+                embeds.append(embed)
+            image_embedses.append(embeds)
+
+        for index, mega_embeds in enumerate(zip(stat_embedses, image_embedses, strict=True)):
+            stat_embeds, image_embeds = mega_embeds
+            embeds = [stat_embeds] + image_embeds
+            data.append({"title": f"Page {index+1}", "description": "Click to view", "num": index, "embed": embeds})
+
+        await interaction.response.send_message(
+            embed=embed, view=PaginationView(org_user=interaction.user.id, data=data, page_size=4)
+        )
 
     @app_commands.command(name="player", description="Shows the user stats overview.")
     async def player(self, interaction: Interaction, mention_target: User) -> None:

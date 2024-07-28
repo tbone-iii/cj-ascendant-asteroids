@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from itertools import batched
 
-from discord import ButtonStyle, Interaction, SelectOption
+from discord import ButtonStyle, Embed, Interaction, SelectOption
 from discord.ui import Button, Select, View, button
 
 from article_overload.exceptions import PaginationViewMissingButtonsError
@@ -36,14 +36,25 @@ class PaginationSelect(Select):
         Description: Callback for checking if a value was selected.
         :Return: None
         """
-        await interaction.response.edit_message(
-            embed=self.full_data[int(self.values[0]) - 1]["embed"],
-            view=PaginationView(
-                interaction.user.id,
-                self.full_data,
-                page=int(self.values[0]) - 1,
-            ),
-        )
+        if isinstance(self.full_data[int(self.values[0]) - 1]["embed"], Embed):
+            await interaction.response.edit_message(
+                embed=(self.full_data[int(self.values[0]) - 1]["embed"]),
+                view=PaginationView(
+                    interaction.user.id,
+                    self.full_data,
+                    page=int(self.values[0]) - 1,
+                ),
+            )
+
+        else:
+            await interaction.response.edit_message(
+                embeds=(self.full_data[int(self.values[0]) - 1]["embed"]),
+                view=PaginationView(
+                    interaction.user.id,
+                    self.full_data,
+                    page=int(self.values[0]) - 1,
+                ),
+            )
 
 
 class PaginationView(View):
@@ -51,7 +62,7 @@ class PaginationView(View):
 
     PAGE_SIZE = 25
 
-    def __init__(self, org_user: int, data: list, page: int = 0) -> None:
+    def __init__(self, org_user: int, data: list, page: int = 0, page_size: int = PAGE_SIZE) -> None:
         """Subclass of View.
 
         Description: Initializes View subclass to create a pagination system.
@@ -70,7 +81,7 @@ class PaginationView(View):
         self.left_button: Button = left_button
         self.right_button: Button = right_button
 
-        for data_chunk in batched(data, self.PAGE_SIZE):
+        for data_chunk in batched(data, page_size):
             self.add_item(PaginationSelect(data_chunk, self.data, page))
 
     @button(emoji="<:left_arrow:1049429857488093275>", style=ButtonStyle.blurple)
@@ -109,7 +120,18 @@ class PaginationView(View):
         """
         self.left_button.disabled = self.page < 1
         self.right_button.disabled = self.page == len(self.data) - 1
-        await interaction.response.edit_message(embed=self.data[self.page]["embed"], view=self)
+
+        if isinstance(self.data[self.page]["embed"], Embed):
+            await interaction.response.edit_message(
+                embed=(self.data[self.page]["embed"]),
+                view=self,
+            )
+
+        else:
+            await interaction.response.edit_message(
+                embeds=(self.data[self.page]["embed"]),
+                view=self,
+            )
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         """Interaction check callback.

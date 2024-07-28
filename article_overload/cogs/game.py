@@ -2,7 +2,7 @@ from discord import Interaction, app_commands
 from discord.ext import commands
 
 from article_overload.bot import ArticleOverloadBot
-from article_overload.constants import MAX_INCORRECT
+from article_overload.constants import MAX_INCORRECT, ImageURLs
 from article_overload.db.handler import DatabaseHandler
 from article_overload.db.objects import ArticleResponse
 from article_overload.exceptions import NoSessionFoundError
@@ -193,14 +193,20 @@ async def main_game_loop(game: Game, interaction: Interaction, database_handler:
     game_view = GameView(
         interaction.user.id,
         article_handler,
-        timeout=game.article_timer,
+        timeout=game.article_timer * 0.75,
     )
 
     await interaction.edit_original_response(
         embed=embed,
         view=game_view,
     )
-    await game_view.wait()
+            await game_view.wait()
+
+            if game_view.sentence is None:
+                game_view = GameView(interaction.user.id, article, timeout=game.article_timer * 0.25)
+                embed.set_image(url=ImageURLs.HURRY)
+                await interaction.edit_original_response(embed=embed, view=game_view)
+        await game_view.wait()
 
     game.stop_article_timer()
 
@@ -249,7 +255,33 @@ async def main_game_loop(game: Game, interaction: Interaction, database_handler:
     await interaction.edit_original_response(embed=embed, view=continue_button)
     await continue_button.wait()
 
-    return True  # continue the game
+        self.client.games.pop(player.get_player_id())
+        await self.notify_database_of_game_end_for_players(game, game.players)
+        return
+
+    async def notify_database_of_game_end_for_players(self, game: Game, players: list[Player]) -> None:
+        """Notify the database of the game end for all players.
+
+        Asyncio is used here to parallelize the database calls.
+
+        :Return: None
+        """
+        session_ids = [
+            session_id for player in players if (session_id := game.get_session_id_for_player(player)) is not None
+        ]
+        scores = [player.get_score() for player in players]
+        await self.database_handler.end_sessions(session_ids=session_ids, scores=scores)
+
+    @app_commands.command(name="list_abilities", description="List all possible abilities.")
+    async def list_abilities(self, interaction: Interaction) -> None:
+        """Bot command to list all possible abilities."""
+        abilities = [ability.value for ability in AbilityType]
+        abilities_list = "\n".join(abilities)
+        await interaction.response.send_message(f"Possible abilities:\n{abilities_list}")
+
+
+def check_user_submission(interaction: Interaction, org_interaction: Interaction, game_view: GameView):
+    return interaction.user.id == org_interaction.user.id and game_view.sentence is not None
 
 
 async def setup(client: ArticleOverloadBot) -> None:
