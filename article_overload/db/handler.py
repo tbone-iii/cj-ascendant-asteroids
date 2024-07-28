@@ -334,16 +334,27 @@ class DatabaseHandler:
         ]
         return await asyncio.gather(*coros)
 
-    async def get_player_score(self, user_id: int) -> int:
+    async def get_player_score(self, user_id: int) -> Score:
         """Get the player's score based on the user ID.
 
-        :Return: `int`
+        :Return: `Score`
         """
         async with self.session_factory() as session:
             result = await session.execute(
-                select(func.sum(SessionRecord.score)).where(SessionRecord.user_id == user_id),
+                select(
+                    func.sum(SessionRecord.score).label("total_score"),
+                    func.max(SessionRecord.end_date).label("most_recent_played"),
+                ).where(SessionRecord.user_id == user_id),
             )
-            return result.scalar() or 0
+            record = result.fetchone()
+            if record is None:
+                return Score(user_id=user_id, score=0, latest_played=None)
+
+            return Score(
+                user_id=user_id,
+                score=record.total_score or 0,
+                latest_played=record.most_recent_played,
+            )
 
     async def get_top_n_scores(self, n: int) -> list[Score]:
         """Get the top N scores.

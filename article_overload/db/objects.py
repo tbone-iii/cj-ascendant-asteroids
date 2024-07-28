@@ -157,7 +157,7 @@ class Score(BaseModel):
 
     user_id: int
     score: int
-    latest_played: datetime
+    latest_played: datetime | None = None
 
     @computed_field
     @property
@@ -166,6 +166,9 @@ class Score(BaseModel):
 
         :Return: `str`
         """
+        if self.latest_played is None:
+            return "Never"
+
         return self.latest_played.strftime("%B %d, %Y")
 
 

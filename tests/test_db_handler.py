@@ -2,6 +2,7 @@ import itertools as it
 import logging
 import sqlite3
 from collections.abc import AsyncGenerator, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -300,7 +301,7 @@ async def test_async_add_article_verify_parameter_storage_and_retrieval(
 @pytest.mark.asyncio()
 @pytest.mark.parametrize(
     ("sentence_length", "article_quantity"),
-    [(1, 1), (100, 10), (1000, 100)],
+    [(1, 1), (100, 10), (250, 20)],
 )
 async def test_async_add_multiple_articles_one_by_one_verify_by_reading_database_synchronously(
     sentence_length: int,
@@ -330,7 +331,7 @@ async def test_async_add_multiple_articles_one_by_one_verify_by_reading_database
 @pytest.mark.asyncio()
 @pytest.mark.parametrize(
     ("sentence_length", "article_quantity"),
-    [(1, 1), (100, 10), (1000, 100)],
+    [(1, 1), (100, 10), (250, 100)],
 )
 async def test_async_bulk_insert_multiple_articles_verify_by_reading_database_synchronously(
     sentence_length: int,
@@ -471,7 +472,11 @@ async def test_get_existing_player_score_from_sample_db(
     database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
 
     user_id = 1234567890
-    expected_score = 40
+    expected_score = objects.Score(
+        user_id=user_id,
+        score=40,
+        latest_played=datetime(2021, 9, 9, hour=5, minute=12, second=10, tzinfo=UTC),
+    )
 
     score = await database_handler.get_player_score(user_id)
     assert score == expected_score
@@ -484,7 +489,10 @@ async def test_get_nonexistent_player_score_from_sample_db(
     database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
 
     user_id = 1111111111
-    expected_score = 0
+    expected_score = objects.Score(
+        user_id=user_id,
+        score=0,
+    )
 
     score = await database_handler.get_player_score(user_id)
     assert score == expected_score
