@@ -1,21 +1,54 @@
-import secrets
-import time
+import secrets, time, random
 from enum import Enum
+from discord.ext import tasks
+from .log import our_logger
 
 from article_overload.constants import (
     ABILITIES_THRESHOLD,
     COOLDOWN_DURATION,
     CORRECT_ANSWER_POINTS,
     INCORRECT_ANSWER_POINTS,
+    EXTEND_TIMER_VALUE,
 )
+
+
+def ability_cooldown(player: "Player", game_view: "GameView") -> None:  # NOQA: F821
+    """Run a callback for a button."""
+    our_logger.info(f"{player.display_name} used the cooldown ability.")
+
+
+def ability_remove_question(player: "Player", game_view: "GameView") -> None:  # NOQA: F821
+    """Run a callback for a button."""
+    # Pick a random number and pop it from the selectview
+    print(game_view.sentence_picker.options)
+    sentence_count = len(game_view.sentence_picker.options)
+    idx = random.randint(0, sentence_count-1)
+    while game_view.sentence_picker.options[idx-1].label[3::] in game_view.article_handler.false_sentence.text:
+        idx = secrets.randbelow(sentence_count)
+    print(game_view.sentence_picker.options.pop(idx))
+    our_logger.info(f"{player.display_name} used the remove questions ability.")
+
+
+def ability_extend_timer(player: "Player", game_view: "GameView") -> None:  # NOQA: F821
+    """Run a callback for a button."""
+    if player.game.get_article_timer() <= 0:
+        result = f"{player.display_name} attempted to use ability_cooldown. Nothing to cool down!"
+    else:
+        # Changes start time according to coldown duration
+        player.game.article_timer_start += EXTEND_TIMER_VALUE
+        game_view.round_end_time += int(EXTEND_TIMER_VALUE)
+        result = (
+            f"{player.display_name} used the extend timer ability. Timer increased by {EXTEND_TIMER_VALUE} seconds."
+        )
+    our_logger.info(result)
 
 
 class AbilityType(Enum):
     """a class to represent abilities available to a player."""
 
-    COOLDOWN = "Cooldown"
-    REMOVE_QUESTION = "Remove Question"
-    EXTEND_TIMER = "Extend Timer"
+    COOLDOWN = (ability_cooldown,)
+    REMOVE_QUESTION = (ability_remove_question,)
+    EXTEND_TIMER = (ability_extend_timer,)
 
 
 class Player:
@@ -90,6 +123,7 @@ class Player:
             The URL of the player's avatar.
 
         """
+        self.game: Game | None = None
         self.player_id = player_id
         self.name = name
         self.display_name = display_name
@@ -156,6 +190,7 @@ class Player:
         self.score += CORRECT_ANSWER_POINTS
         self.correct += 1
         self.answer_streak += 1
+        self.update_abilities_meter(value=20)
 
     def add_incorrect(self) -> None:
         """Remove points for incorrect answer and update streaks."""
@@ -215,12 +250,27 @@ class Player:
         """Get the value of player's ability meter."""
         return self.abilities_meter
 
+    @tasks.loop(seconds=5)
+    async def async_loop_abilities_meter(self, value: int = 15) -> AbilityType | None:
+        """Update the abilities meter every 5 seconds."""
+        self.abilities_meter += value
+        our_logger.info(f"Abilities meter value: {self.abilities_meter}")
+        if self.abilities_meter >= self.abilities_threshold:
+            self.reset_abilities_meter()
+            new_ability = secrets.choice(list(AbilityType))
+            our_logger.info(f"New ability, [{new_ability}] added!")
+            self.add_ability(new_ability)
+            return new_ability
+        return None
+
     def update_abilities_meter(self, value: int) -> AbilityType | None:
         """Update the abilities meter and return the new ability if threshold is reached."""
         self.abilities_meter += value
+        print(f"Abilities_meter value: {self.abilities_meter}")
         if self.abilities_meter >= self.abilities_threshold:
-            self.abilities_meter = 0
+            self.reset_abilities_meter()
             new_ability = secrets.choice(list(AbilityType))
+            print(f"Ability [{new_ability}] added!")
             self.add_ability(new_ability)
             return new_ability
         return None
@@ -293,6 +343,7 @@ class Game:
             The player to be added to the game.
 
         """
+        player.game = self
         self.players.append(player)
 
     def add_session_id_for_player(self, player: Player, session_id: int) -> None:
@@ -313,6 +364,7 @@ class Game:
         """End the game by changing the state to 'ended'."""
         self.state = "ended"
         self.end_time = time.time()
+        self.players[0].async_loop_abilities_meter.cancel()
 
     def get_player(self, player_id: int) -> "Player | None":
         """Retrieve a player by their ID.
@@ -347,9 +399,11 @@ class Game:
         self.article_timer_start = time.time()
         self.article_timer_active = True
 
+
     def stop_article_timer(self) -> None:
         """Stop the timer countdown for the overload article questions."""
         self.article_timer_active = False
+        self.players[0].async_loop_abilities_meter.cancel()
 
     def get_article_timer(self) -> float:
         """Get the timer countdown for the overload article questions."""
