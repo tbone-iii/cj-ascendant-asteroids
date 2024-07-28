@@ -171,7 +171,7 @@ sample_session_records = [
         id=3,
         user_id=1234567890,
         start_date=datetime(2021, 9, 9, hour=5, minute=12, second=5, tzinfo=UTC),
-        end_date=datetime(2021, 9, 9, hour=5, minute=12, second=5, tzinfo=UTC),
+        end_date=datetime(2021, 9, 9, hour=5, minute=12, second=10, tzinfo=UTC),
         score=25,
     ),
 ]

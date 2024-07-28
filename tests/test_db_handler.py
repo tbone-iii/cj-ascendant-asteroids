@@ -2,6 +2,7 @@ import itertools as it
 import logging
 import sqlite3
 from collections.abc import AsyncGenerator, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -471,7 +472,11 @@ async def test_get_existing_player_score_from_sample_db(
     database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
 
     user_id = 1234567890
-    expected_score = 40
+    expected_score = objects.Score(
+        user_id=user_id,
+        score=40,
+        latest_played=datetime(2021, 9, 9, hour=5, minute=12, second=10, tzinfo=UTC),
+    )
 
     score = await database_handler.get_player_score(user_id)
     assert score == expected_score
@@ -484,7 +489,10 @@ async def test_get_nonexistent_player_score_from_sample_db(
     database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
 
     user_id = 1111111111
-    expected_score = 0
+    expected_score = objects.Score(
+        user_id=user_id,
+        score=0,
+    )
 
     score = await database_handler.get_player_score(user_id)
     assert score == expected_score
