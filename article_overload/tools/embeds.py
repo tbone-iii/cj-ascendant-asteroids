@@ -1,7 +1,7 @@
+import time
+
 from discord import Color, Embed
 from discord.app_commands import MissingPermissions
-from utils.constants import ARTICLE_TIMER
-from utils.game_classes import Game, Player
 
 from article_overload.constants import (
     COLOR_BAD,
@@ -9,9 +9,11 @@ from article_overload.constants import (
     COLOR_NEUTRAL,
     CORRECT_ANSWER_POINTS,
     INCORRECT_ANSWER_POINTS,
+    ImageURLs,
 )
 from article_overload.db.objects import Article
 from article_overload.exceptions import PlayerNotFoundError
+from article_overload.game_classes import Game, Player
 
 
 def create_success_embed(title: str = "\u200b", description: str = "\u200b") -> Embed:
@@ -22,7 +24,7 @@ def create_success_embed(title: str = "\u200b", description: str = "\u200b") -> 
     """
     embed = Embed(title=title, description=description, color=COLOR_GOOD)
     embed.set_thumbnail(
-        url="https://media3.giphy.com/media/CaS9NNso512WJ4po0t/giphy.gif?cid=ecf05e47mgm8u6fljfxl5d5g0s01tp94qgn9exfwqvlpi3id&rid=giphy.gif&ct=s",
+        url=ImageURLs.SUCCESS,
     )
     return embed
 
@@ -35,7 +37,7 @@ def create_warning_embed(title: str = "\u200b", description: str = "\u200b") -> 
     """
     embed = Embed(title=title, description=description, color=COLOR_NEUTRAL)
     embed.set_thumbnail(
-        url="https://c.tenor.com/26pNa498OS0AAAAi/warning-joypixels.gif",
+        url=ImageURLs.WARNING,
     )
     return embed
 
@@ -48,7 +50,7 @@ def create_error_embed(title: str = "\u200b", description: str = "\u200b") -> Em
     """
     embed = Embed(title=title, description=description, color=COLOR_BAD)
     embed.set_thumbnail(
-        url="https://i.gifer.com/origin/bf/bf2d25254a2808835e20c9d698d75f28_w200.gif",
+        url=ImageURLs.ERROR,
     )
     return embed
 
@@ -140,19 +142,21 @@ def create_article_embed(article: Article, player: int | Player, game: Game) -> 
     """
     embed = Embed(
         title="Article Overload!",
-        description=f"Please read the following article summary and use the \
-            select menu below to choose which sentence is false:\n\n{article.marked_up_summary}",
+        description="Please read the following article summary and "
+        "use the select menu below to choose which sentence is false:",
     )
-    embed.add_field(name="Time Left", value=f"Ending <t:{int(game.article_timer_start+ARTICLE_TIMER)}:R>")
+    embed.add_field(name="", value=f"{article.marked_up_summary}", inline=False)
+    embed.add_field(
+        name="Round ends:",
+        value=f"<t:{int(time.time() + game.article_timer)}:R>",
+        inline=False,
+    )
 
     player_instance = game.get_player(player) if isinstance(player, int) else player
     if player_instance is None:
         raise PlayerNotFoundError
 
-    embed.add_field(
-        name="Answer Streak",
-        value=str(player_instance.answer_streak),
-    )
+    embed.add_field(name="Answer Streak", value=str(player_instance.answer_streak), inline=False)
     return embed
 
 

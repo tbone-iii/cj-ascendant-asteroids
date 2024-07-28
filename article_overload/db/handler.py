@@ -369,7 +369,10 @@ class DatabaseHandler:
                     func.max(SessionRecord.end_date).label("latest_played"),
                 )
                 .group_by(SessionRecord.user_id)
-                .order_by(func.sum(SessionRecord.score).desc(), func.max(SessionRecord.end_date).desc())
+                .order_by(
+                    func.sum(SessionRecord.score).desc(),
+                    func.max(SessionRecord.end_date).desc(),
+                )
                 .limit(n)
             )
             result = await session.execute(subquery)

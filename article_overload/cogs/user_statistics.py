@@ -7,16 +7,21 @@ from discord import (
     app_commands,
 )
 from discord.ext import commands
-from utils.constants import SCORE_BOARD_COLOR, SCORE_BOARD_NUM_SCORES_TO_SHOW, SCORE_BOARD_SPACING_SIZE, ImageURLs
 
 from article_overload.bot import ArticleOverloadBot
+from article_overload.constants import (
+    SCORE_BOARD_COLOR,
+    SCORE_BOARD_NUM_SCORES_TO_SHOW,
+    SCORE_BOARD_SPACING_SIZE,
+    ImageURLs,
+)
 from article_overload.db.objects import UserTopicStat
 
 InteractionChannel = Any
 
 
-class ScoreboardCog(commands.Cog):
-    """Scoreboard cog class."""
+class UserStatsCog(commands.GroupCog, group_name="view", group_description="View statistics about Article Overload"):
+    """User statistics cog class."""
 
     def __init__(self, client: ArticleOverloadBot) -> None:
         """Initialize method.
@@ -28,10 +33,10 @@ class ScoreboardCog(commands.Cog):
         self.database_handler = client.database_handler
 
     @app_commands.command(
-        name="show_scoreboard",
+        name="leaderboard",
         description=f"Shows the scores of the top {SCORE_BOARD_NUM_SCORES_TO_SHOW} players.",
     )
-    async def show_scoreboard(self, interaction: Interaction) -> None:
+    async def leaderboard(self, interaction: Interaction) -> None:
         """Bot command.
 
         Description: Shows the scores of the top ten players.
@@ -60,8 +65,8 @@ class ScoreboardCog(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="get_user_score", description="Shows the user stats overview.")
-    async def get_user_stats_overview(self, interaction: Interaction, mention_target: User) -> None:
+    @app_commands.command(name="player", description="Shows the user stats overview.")
+    async def player(self, interaction: Interaction, mention_target: User) -> None:
         """Bot command. Shows the user stats overview.
 
         :Return: None
@@ -76,11 +81,16 @@ class ScoreboardCog(commands.Cog):
         overall_topic_title = f"Overall Score - {player_score.score}"
         overall_topic_string = _make_topic_string(overall_topic_stat)
 
-        topic_stat = player_topic_stats_breakdown[0]
-        best_topic_string = _make_topic_string(topic_stat)
+        if len(player_topic_stats_breakdown) > 0:
+            topic_stat = player_topic_stats_breakdown[0]
+            best_topic_string = _make_topic_string(topic_stat)
 
-        topic_stat = player_topic_stats_breakdown[-1]
-        worst_topic_string = _make_topic_string(topic_stat)
+            topic_stat = player_topic_stats_breakdown[-1]
+            worst_topic_string = _make_topic_string(topic_stat)
+
+        else:
+            best_topic_string = "`<None>`"
+            worst_topic_string = "`<None>`"
 
         embed = (
             Embed(title="User Stats Overview", color=SCORE_BOARD_COLOR)
@@ -90,15 +100,6 @@ class ScoreboardCog(commands.Cog):
             .add_field(name="Worst Topic", value=worst_topic_string, inline=True)
         )
         await interaction.response.send_message(embed=embed)
-
-
-async def setup(client: ArticleOverloadBot) -> None:
-    """Set up command.
-
-    Description: Sets up the Scoreboard Cog
-    :Return: None
-    """
-    await client.add_cog(ScoreboardCog(client))
 
 
 def _left_padded_text(text: str, padding_size: int) -> str:
@@ -111,3 +112,12 @@ def _make_topic_string(topic_stat: UserTopicStat) -> str:
         topic = "<All Topics>"
 
     return f"`{topic}` - {topic_stat.total_correct}/{topic_stat.total_responses} [{topic_stat.percentage_correct}%]"
+
+
+async def setup(client: ArticleOverloadBot) -> None:
+    """Set up command.
+
+    Description: Sets up the Scoreboard Cog
+    :Return: None
+    """
+    await client.add_cog(UserStatsCog(client))
