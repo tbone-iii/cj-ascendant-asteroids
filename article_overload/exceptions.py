@@ -40,3 +40,7 @@ class PlayerNotFoundError(Exception):
 
 class PaginationViewMissingButtonsError(Exception):
     """For when a pagination view is missing buttons."""
+
+
+class DatabaseError(Exception):
+    """For when a database error occurs."""
