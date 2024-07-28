@@ -51,8 +51,8 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
         game, player = self.setup_game_and_player(interaction)
         our_logger.info(f"Game object initialized for '{interaction.user.name}'")
 
-        # Watch UI inputs
-        start_button = await self.initialize_start_button(interaction, player=player)
+        # Setup game menu
+        start_button = await self.initialize_menu(interaction, player=player)
         if start_button.start_timer_seconds is None:
             await self.send_game_expired_message(interaction)
             return
@@ -61,15 +61,15 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
         begin_game(game, interaction, start_timer_seconds=start_button.start_timer_seconds)
 
         # The Sessions table in the database tracks users and scores
-        await initialize_sessions_table(database_handler=self.client.database_handler, game=game)
+        await initialize_sessions_table(database_handler=self.database_handler, game=game)
 
         our_logger.info(f"Game loop started for '{interaction.user.name}'")
         flag = True
         while flag:
-            flag = await main_game_loop(
+            flag = await self.main_game_loop(
                 game=game,
                 interaction=interaction,
-                database_handler=self.client.database_handler,
+                database_handler=self.database_handler,
             )
 
         # End game
@@ -87,7 +87,7 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
         Description: Ends the game
         :Return: None
         """
-        game = self.client.games.get(interaction.user.id, None)
+        game = self.client.games.pop(interaction.user.id)
         if game is None:
             return await interaction.response.send_message(
                 embed=create_warning_embed(
@@ -150,13 +150,16 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
         self.client.games.update({interaction.user.id: game})
         return game, player
 
-    async def initialize_start_button(self, interaction: Interaction, player: Player) -> StartButtonView:
-        """Initialize the start button.
+    async def initialize_menu(self, interaction: Interaction, player: Player) -> StartButtonView:
+        """Initialize the start game menu.
 
-        Description: Initializes the start button.
         :Return: `StartButtonView`
         """
         start_button = StartButtonView(user_id=interaction.user.id)
+
+        score = await self.database_handler.get_player_score(player.player_id)
+        player.all_time_score = score.score
+
         embed = create_start_game_embed(player)
         await interaction.response.send_message(embed=embed, view=start_button)
         await start_button.wait()
@@ -178,109 +181,91 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
             )
         )
 
+    async def main_game_loop(self, game: Game, interaction: Interaction, database_handler: DatabaseHandler) -> bool:
+        """Run the main game loop.
 
-async def main_game_loop(game: Game, interaction: Interaction, database_handler: DatabaseHandler) -> bool:
-    """Run the main game loop.
+        Description: Main game loop for the ArticleOverload game.
+        :Return: flag to continue the game
+        """
+        article_handler = await database_handler.get_random_article()
 
-    Description: Main game loop for the ArticleOverload game.
-    :Return: flag to continue the game
-    """
-    article_handler = await database_handler.get_random_article()
+        player = game.players[0]  # TODO: Change this to be dynamic for PvP
+        embed = create_article_embed(article_handler=article_handler, player=player, game=game)
 
-    player = game.players[0]  # TODO: Change this to be dynamic for PvP
-    embed = create_article_embed(article_handler=article_handler, player=player, game=game)
+        game_view = GameView(
+            interaction.user.id,
+            article_handler,
+            timeout=game.article_timer * 0.75,
+        )
 
-    game_view = GameView(
-        interaction.user.id,
-        article_handler,
-        timeout=game.article_timer * 0.75,
-    )
-
-    await interaction.edit_original_response(
-        embed=embed,
-        view=game_view,
-    )
-            await game_view.wait()
-
-            if game_view.sentence is None:
-                game_view = GameView(interaction.user.id, article, timeout=game.article_timer * 0.25)
-                embed.set_image(url=ImageURLs.HURRY)
-                await interaction.edit_original_response(embed=embed, view=game_view)
+        await interaction.edit_original_response(
+            embed=embed,
+            view=game_view,
+        )
         await game_view.wait()
 
-    game.stop_article_timer()
+        game.stop_article_timer()
 
-    if game_view.sentence is None:
-        await interaction.edit_original_response(embed=create_time_up_embed(player, game), view=None)
-        return False
+        if game_view.sentence is None:
+            game_view = GameView(
+                interaction.user.id, article_handler=article_handler, timeout=game.article_timer * 0.25
+            )
+            embed.set_image(url=ImageURLs.HURRY)
+            await interaction.edit_original_response(embed=embed, view=game_view)
+            await game_view.wait()
 
-    is_correct = game_view.sentence == article_handler.false_sentence
-    if is_correct:
-        player.add_correct()
-        embed = create_correct_answer_embed(player)
-        our_logger.info(f"Correct answer for '{interaction.user.name}'")
-    else:
-        player.add_incorrect()
-        embed = create_incorrect_answer_embed(player=player, highlighted_summary=article_handler.highlighted_summary)
-        our_logger.info(f"Incorrect answer for '{interaction.user.name}'")
+        if game_view.sentence is None:
+            await interaction.edit_original_response(embed=create_time_up_embed(player, game), view=None)
+            return False
 
-    session_id = game.get_session_id_for_player(player)
-    if session_id is None:
-        raise NoSessionFoundError
+        is_correct = game_view.sentence == article_handler.false_sentence
+        if is_correct:
+            player.add_correct()
+            embed = create_correct_answer_embed(player)
+            our_logger.info(f"Correct answer for '{interaction.user.name}'")
+        else:
+            player.add_incorrect()
+            embed = create_incorrect_answer_embed(
+                player=player, highlighted_summary=article_handler.highlighted_summary
+            )
+            our_logger.info(f"Incorrect answer for '{interaction.user.name}'")
 
-    # The Article Responses are for player telemetry on performance
-    article_response = ArticleResponse(
-        user_id=player.player_id,
-        session_id=session_id,
-        response=game_view.sentence.text,
-        is_correct=is_correct,
-    )
-    # TODO: replace _article with article_handler, change underlying db handler functions too
-    await database_handler.add_article_response_from_article(
-        article=article_handler._article,  # noqa: SLF001
-        article_response=article_response,
-    )
-    our_logger.info(f"Article response {article_response} added for '{interaction.user.name}'")
+        session_id = game.get_session_id_for_player(player)
+        if session_id is None:
+            raise NoSessionFoundError
 
-    if player.incorrect == MAX_INCORRECT:
-        our_logger.info(f"Too many incorrect answers for '{interaction.user.name}'")
-        await interaction.edit_original_response(
-            embed=create_too_many_incorrect_embed(player, game),
-            view=None,
+        # The Article Responses are for player telemetry on performance
+        article_response = ArticleResponse(
+            user_id=player.player_id,
+            session_id=session_id,
+            response=game_view.sentence.text,
+            is_correct=is_correct,
         )
-        return False
+        # TODO: replace _article with article_handler, change underlying db handler functions too
+        await database_handler.add_article_response_from_article(
+            article=article_handler._article,  # noqa: SLF001
+            article_response=article_response,
+        )
+        our_logger.info(f"Article response {article_response} added for '{interaction.user.name}'")
 
-    continue_button = ContinueButtonView()
+        if player.incorrect == MAX_INCORRECT:
+            our_logger.info(f"Too many incorrect answers for '{interaction.user.name}'")
+            await interaction.edit_original_response(
+                embed=create_too_many_incorrect_embed(player, game),
+                view=None,
+            )
+            return False
 
-    await interaction.edit_original_response(embed=embed, view=continue_button)
-    await continue_button.wait()
+        continue_button = ContinueButtonView()
 
-        self.client.games.pop(player.get_player_id())
-        await self.notify_database_of_game_end_for_players(game, game.players)
-        return
+        await interaction.edit_original_response(embed=embed, view=continue_button)
+        await continue_button.wait()
 
-    async def notify_database_of_game_end_for_players(self, game: Game, players: list[Player]) -> None:
-        """Notify the database of the game end for all players.
-
-        Asyncio is used here to parallelize the database calls.
-
-        :Return: None
-        """
-        session_ids = [
-            session_id for player in players if (session_id := game.get_session_id_for_player(player)) is not None
-        ]
-        scores = [player.get_score() for player in players]
-        await self.database_handler.end_sessions(session_ids=session_ids, scores=scores)
-
-    @app_commands.command(name="list_abilities", description="List all possible abilities.")
-    async def list_abilities(self, interaction: Interaction) -> None:
-        """Bot command to list all possible abilities."""
-        abilities = [ability.value for ability in AbilityType]
-        abilities_list = "\n".join(abilities)
-        await interaction.response.send_message(f"Possible abilities:\n{abilities_list}")
+        return True
 
 
-def check_user_submission(interaction: Interaction, org_interaction: Interaction, game_view: GameView):
+def check_user_submission(interaction: Interaction, org_interaction: Interaction, game_view: GameView) -> bool:
+    """Check if the user submission is valid."""
     return interaction.user.id == org_interaction.user.id and game_view.sentence is not None
 
 

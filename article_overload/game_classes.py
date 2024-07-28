@@ -101,6 +101,7 @@ class Player:
         self.abilities: list[AbilityType] = []
         self.abilities_meter = 0
         self.abilities_threshold = ABILITIES_THRESHOLD
+        self.all_time_score: int = 0
 
     def add_ability(self, ability: AbilityType) -> None:
         """Add an ability to the player's list of abilities.
@@ -339,7 +340,7 @@ class Game:
 
         duration = time.time() - self.start_time
         minutes, seconds = divmod(duration, 60)
-        return f"{int(minutes)} minutes {int(seconds)} seconds"
+        return f"{int(minutes)}m {int(seconds)}s"
 
     def start_article_timer(self) -> None:
         """Start the timer countdown for the overload article questions."""

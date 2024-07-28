@@ -29,12 +29,12 @@ def test_formatted_sentence_hidden_sentence_type_true(text: str, number: int | N
 
 def test_formatted_sentence_result_sentence_type_true() -> None:
     sentence = Sentence("This is a test sentence.", SentenceType.TRUE)
-    assert sentence.formatted_sentence_result(1) == "**`1. This is a test sentence.`**"
+    assert sentence.formatted_sentence_result(1) == "~~`1. This is a test sentence.`~~"
 
 
 def test_formatted_sentence_result_sentence_type_false() -> None:
     sentence = Sentence("This is a test sentence.", SentenceType.FALSE)
-    assert sentence.formatted_sentence_result(1) == "~~`1. This is a test sentence.`~~"
+    assert sentence.formatted_sentence_result(1) == "**`1. This is a test sentence.`**"
 
 
 def test_formatted_sentence_result_sentence_type_neutral() -> None:

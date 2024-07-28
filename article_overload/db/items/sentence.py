@@ -41,6 +41,6 @@ class Sentence:
 
         number_string = f"{number}. "
         if self.sentence_type == SentenceType.TRUE:
-            return f"**`{number_string}{self.text}`**"
+            return f"~~`{number_string}{self.text}`~~"
 
-        return f"~~`{number_string}{self.text}`~~"
+        return f"**`{number_string}{self.text}`**"

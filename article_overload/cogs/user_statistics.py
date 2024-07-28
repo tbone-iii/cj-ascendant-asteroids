@@ -51,55 +51,47 @@ class UserStatsCog(commands.GroupCog, group_name="view", group_description="View
             f"{_left_padded_text("Last Seen", size)}`\n"
         )
 
-        data: list[dict[str, str]] = []
+        data: list[dict[str, Any]] = []
 
         player_scores = await self.client.database_handler.get_top_n_scores(n=SCORE_BOARD_NUM_SCORES_TO_SHOW)
 
         stat_embedses = []
-        for index, score_objects in enumerate(batched(player_scores, 4)):
+        batch_size = 4
+        for score_objects in batched(player_scores, batch_size):
             embed = Embed()
             embed.add_field(name="Leaderboard", value=header_text)
             stat_embedses.append(embed)
             string = ""
             for score_object in score_objects:
-                try:
-                    name = (await self.client.fetch_user(score_object.user_id)).name
-                except:
-                    name = f"Little Bro #{index}"
-
+                name = (await self.client.fetch_user(score_object.user_id)).name
                 string += (
                     f"`{_left_padded_text(name, size)}"
                     f"{_left_padded_text(str(score_object.score), size)}"
                     f"{_left_padded_text(score_object.latest_played_formatted, size)}`\n"
                 )
-
             embed.add_field(
                 name="",
                 value=string,
                 inline=False,
             )
+
         image_embedses = []
-        for index, score_objects in enumerate(batched(player_scores, 4)):
+        for score_objects in batched(player_scores, batch_size):
             embeds = []
             for score_object in score_objects:
-                try:
-                    user = await self.client.fetch_user(score_object.user_id)
-
-                except:
-                    user = user
-
-                embed = Embed(url="https://example.com")
+                user = await self.client.fetch_user(score_object.user_id)
                 embed.set_image(url=user.avatar.url if user.avatar else user.default_avatar)
                 embeds.append(embed)
             image_embedses.append(embeds)
 
         for index, mega_embeds in enumerate(zip(stat_embedses, image_embedses, strict=True)):
             stat_embeds, image_embeds = mega_embeds
-            embeds = [stat_embeds] + image_embeds
-            data.append({"title": f"Page {index+1}", "description": "Click to view", "num": index, "embed": embeds})
+            embeds = [stat_embeds, *image_embeds]
+            data.append({"title": f"Page {index + 1}", "description": "Click to view", "num": index, "embed": embeds})
 
         await interaction.response.send_message(
-            embed=embed, view=PaginationView(org_user=interaction.user.id, data=data, page_size=4)
+            embed=embed,
+            view=PaginationView(org_user=interaction.user.id, data=data, page_size=4),
         )
 
     @app_commands.command(name="player", description="Shows the user stats overview.")
