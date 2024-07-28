@@ -411,72 +411,39 @@ class DatabaseHandler:
 
         If the correctness ratios match, the topics should be ordered by the number of responses.
         """
-        async with self.session_factory() as session:
-            count_query = (
-                select(
-                    ArticleResponseRecord.user_id,
-                    ArticleRecord.topic,
-                    func.count().label("total_responses"),
-                )
-                .join(ArticleResponseRecord)
-                .join(SessionRecord)
-                .where(ArticleResponseRecord.user_id == user_id)
-                .group_by(ArticleRecord.topic, ArticleResponseRecord.user_id)
-            ).subquery()
+        count_subquery = self._get_count_query_for_user_grouped_by_topic(user_id)
+        correct_count_subquery = self._get_correct_count_query_for_user_grouped_by_topic(user_id)
 
-            count_correct_query = (
-                select(
-                    ArticleResponseRecord.user_id,
-                    ArticleRecord.topic,
-                    func.count().label("total_correct"),
-                )
-                .join(ArticleResponseRecord)
-                .join(SessionRecord)
-                .where(
-                    and_(
-                        ArticleResponseRecord.user_id == user_id,
-                        ArticleResponseRecord.correct == true(),
-                    ),
-                )
-                .group_by(ArticleRecord.topic, ArticleResponseRecord.user_id)
-            ).subquery()
+        ratio_correct = case(
+            (
+                count_subquery.columns.total_responses != 0,
+                cast(correct_count_subquery.columns.total_correct, Float) / count_subquery.columns.total_responses,
+            ),
+            else_=0,
+        ).label("ratio_correct")
 
-            result_query = (
-                select(
-                    count_query.columns.user_id,
-                    count_query.columns.topic,
-                    count_query.columns.total_responses,
-                    count_correct_query.columns.total_correct,
-                    case(
-                        (
-                            count_query.columns.total_responses != 0,
-                            cast(count_correct_query.columns.total_correct, Float)
-                            / count_query.columns.total_responses,
-                        ),
-                        else_=0,
-                    ).label("correctness_ratio"),
-                )
-                .select_from(count_query)
-                .outerjoin(
-                    count_correct_query,
-                    onclause=and_(
-                        count_query.columns.user_id == count_correct_query.columns.user_id,
-                        count_query.columns.topic == count_correct_query.columns.topic,
-                    ),
-                )
-                .order_by(
-                    case(
-                        (
-                            count_query.columns.total_responses != 0,
-                            cast(count_correct_query.columns.total_correct, Float)
-                            / count_query.columns.total_responses,
-                        ),
-                        else_=0,
-                    ).desc(),
-                    count_query.columns.total_responses.desc(),
-                )
+        result_query = (
+            select(
+                count_subquery.columns.user_id,
+                count_subquery.columns.topic,
+                count_subquery.columns.total_responses,
+                ratio_correct,
+                correct_count_subquery.columns.total_correct,
             )
-
+            .select_from(count_subquery)
+            .outerjoin(
+                correct_count_subquery,
+                onclause=and_(
+                    count_subquery.columns.user_id == correct_count_subquery.columns.user_id,
+                    count_subquery.columns.topic == correct_count_subquery.columns.topic,
+                ),
+            )
+            .order_by(
+                ratio_correct.desc(),
+                count_subquery.columns.total_responses.desc(),
+            )
+        )
+        async with self.session_factory() as session:
             result = await session.execute(result_query)
             return [
                 UserTopicStat(
