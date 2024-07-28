@@ -289,16 +289,17 @@ def create_too_many_incorrect_embed(player: Player, game: Game) -> Embed:
         A Discord embed object containing the player's details.
 
     """
+    padding_size = 15
     return Embed(
         title="Game Over!",
         description=(
             "You got too many questions wrong! Here are your statistics from this game:\n"
-            f"Score: {player.get_score()}\n"
-            f"Game Time: {game.get_game_duration()}\n"
-            f"Correct: {player.correct}\n"
-            f"Incorrect: {player.incorrect}\n"
+            f"`{'Score: ': <{padding_size}}{player.get_score(): <8}`\n"
+            f"`{'Correct: ': <{padding_size}}{player.correct: <8}`\n"
+            f"`{'Incorrect: ': <{padding_size}}{player.incorrect: <8}`\n"
+            f"`{'Game Time: ': <{padding_size}}{game.get_game_duration(): <8}`\n"
         ),
-    )
+    ).set_thumbnail(url=ImageURLs.SAD_BEAR)
 
 
 def get_player_from_id_or_instance(player: int | Player, game: Game) -> Player | None:
