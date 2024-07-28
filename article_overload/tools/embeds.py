@@ -130,7 +130,7 @@ def create_start_game_embed(player: Player) -> Embed:
             f"**Player Details**\n"
             f"**Player ID**: {player.get_player_id()}\n"
             f"**Display Name**: {player.get_display_name()}\n"
-            f"**Score**: {player.get_score()}\n"
+            f"**Score**: {player.all_time_score}\n"
             f"{rules}"
         ),
         color=Color.green(),
