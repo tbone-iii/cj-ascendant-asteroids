@@ -299,7 +299,7 @@ def create_too_many_incorrect_embed(player: Player, game: Game) -> Embed:
             f"`{'Incorrect: ': <{padding_size}}{player.incorrect: <8}`\n"
             f"`{'Game Time: ': <{padding_size}}{game.get_game_duration(): <8}`\n"
         ),
-    )
+    ).set_thumbnail(url=ImageURLs.SAD_BEAR)
 
 
 def get_player_from_id_or_instance(player: int | Player, game: Game) -> Player | None:
