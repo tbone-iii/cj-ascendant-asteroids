@@ -6,6 +6,7 @@ from sqlalchemy import Float, Subquery, and_, case, cast, select
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.sql.expression import func, true
 
+from article_overload.db.items.article_handler import ArticleHandler
 from article_overload.exceptions import (
     NoArticlesFoundError,
     NoSessionFoundError,
@@ -181,7 +182,7 @@ class DatabaseHandler:
                 )
             ]
 
-    async def get_random_article(self) -> Article:
+    async def get_random_article(self) -> ArticleHandler:
         """Get a random article.
 
         :Return: `Article`
@@ -196,11 +197,12 @@ class DatabaseHandler:
             question_records = await self.get_question_records_from_article_record(article_record, session)
             size_record = await self.get_size_records_from_article_record(article_record, session)
 
-            return Article.create_from_article_record(
+            article = Article.create_from_article_record(
                 article_record=article_record,
                 question_records=list(question_records),
                 size_record=size_record,
             )
+            return ArticleHandler(article)
 
     async def get_global_ratio_correct_on_article(self, article: Article) -> float | None:
         """Get the global ratio correct on an article.

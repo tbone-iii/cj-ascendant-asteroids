@@ -2,10 +2,8 @@ from discord import ButtonStyle, Interaction, SelectOption
 from discord.ui import Button, Select, View, button
 
 from article_overload.constants import DifficultyTimer
-from article_overload.db.objects import Article
-from article_overload.tools.embeds import (
-    create_error_embed,
-)
+from article_overload.db.items.article_handler import ArticleHandler
+from article_overload.tools.embeds import create_error_embed
 
 
 class StartButtonView(View):
@@ -121,7 +119,7 @@ class ContinueButtonView(View):
 class GameView(View):
     """Game view class."""
 
-    def __init__(self, org_user: int, article: Article, timeout: float) -> None:
+    def __init__(self, org_user: int, article_handler: ArticleHandler, timeout: float) -> None:
         """Subclass of View.
 
         Description: Initializes View subclass to create a game view.
@@ -129,11 +127,11 @@ class GameView(View):
         """
         super().__init__(timeout=timeout)
         self.org_user = org_user
-        self.article = article
+        self.article_handler = article_handler
 
         self.sentence: str | None = None
 
-        self.sentence_selection = SentenceSelect(self.article.questions)
+        self.sentence_selection = SentenceSelect(article_handler.raw_text_active_sentences)
         self.add_item(self.sentence_selection)
 
     @button(label="Submit", style=ButtonStyle.green, row=1)
@@ -154,8 +152,10 @@ class GameView(View):
                 ephemeral=True,
             )
 
+        # TODO: Rework, using the Sentences class created; fix the other issue by mapping sentences to
+        # TODO: the SelectOptions (Discord API)
         self.sentence = (
-            self.article.questions[int(self.sentence_selection.values[0])]
+            self.article_handler.active_sentences[int(self.sentence_selection.values[0])].text  # noqa: PD011
             if len(self.sentence_selection.values) > 0
             else None
         )

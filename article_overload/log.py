@@ -14,10 +14,14 @@ discord_log_handler = logging.handlers.RotatingFileHandler(
 )
 discord_log_handler.setFormatter(formatter)
 discord_log_handler.setLevel(logging.DEBUG)
+discord_log_stream_handler = logging.StreamHandler()
+discord_log_stream_handler.setFormatter(formatter)
+discord_log_stream_handler.setLevel(logging.ERROR)
 
 discord_logger = logging.getLogger("discord")
 discord_logger.setLevel(logging.DEBUG)
 discord_logger.addHandler(discord_log_handler)
+discord_logger.addHandler(discord_log_stream_handler)
 
 # SQL Alchemy - redirect to a file instead of stdout
 sqlalchemy_log_handler = logging.handlers.RotatingFileHandler(

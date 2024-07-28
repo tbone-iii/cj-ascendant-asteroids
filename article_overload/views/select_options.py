@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from itertools import batched
 
 from discord import ButtonStyle, Interaction, SelectOption
@@ -38,6 +39,18 @@ class SelectOptions(Select):
         await interaction.response.defer()
 
 
+@dataclass
+class ViewParameters:
+    """A custom view class for select options."""
+
+    org_user: int
+    option_titles: list
+    option_values: list
+    value_range: tuple[int, int] = (1, 1)
+    placeholder: str = "Select a value"
+    timeout: float = 600.0
+
+
 class SelectOptionsView(View):
     """Select menu view class."""
 
@@ -45,25 +58,20 @@ class SelectOptionsView(View):
 
     def __init__(
         self,
-        org_user: int,
-        option_titles: list,
-        option_values: list,
-        value_range: tuple[int, int] = (1, 1),
-        placeholder: str = "Select a value",
-        timeout: int = 600,
+        parameters: ViewParameters,
     ) -> None:
         """Subclass of View.
 
         Description: Initializes View subclass to create a selection system.
         :Return: None
         """
-        super().__init__(timeout=timeout)
+        super().__init__(timeout=parameters.timeout)
 
-        self.org_user = org_user
+        self.org_user = parameters.org_user
         self.clicked: list[str] = []
-        self.min_val, self.max_val = value_range
+        self.min_val, self.max_val = parameters.value_range
 
-        self.generate_select_menus(option_titles, option_values, placeholder)
+        self.generate_select_menus(parameters.option_titles, parameters.option_values, parameters.placeholder)
 
     def generate_select_menus(self, option_titles: list[str], option_values: list[str], placeholder: str) -> None:
         """Create select menus.
