@@ -90,7 +90,7 @@ class GameView(View):
         self.client = client
         self.article = article
         self.game = game
-        self.round_end_time = 0
+        self.round_end_time = int(time.time() + self.game.article_timer)
 
         self.ability_buttons_list = []
 
@@ -106,18 +106,22 @@ class GameView(View):
 
         self.check_time.start()
 
+    # Scuffed, but I can't use the normal @button since these buttons shouldn't
+    # be binded to the view.
     def create_ability_buttons(self) -> None:
         """Create and add the players abilities as buttons."""
+        # Remove existing buttons to avoid creating duplicates
         for buttons in self.ability_buttons_list:
             self.remove_item(buttons)
 
+        # Create button for all abilities in player.abilities
         for ability in self.player.abilities:
             ability_button = Button(style=ButtonStyle.blurple, label=f"{ability.name}")
 
             async def general_callback(interaction: Interaction) -> None:
                 """Temporary callback for ability buttons."""
                 await interaction.response.defer()
-                await interaction.followup.send("henlo stinky")
+                ability.value[0](self.player, self.game, self)  # NOQA: B023
                 self.remove_item(ability_button)  # NOQA: B023
                 self.player.abilities.remove(ability)  # NOQA: B023
                 await self.og_interaction.edit_original_response(
@@ -217,14 +221,15 @@ class GameView(View):
         Description: Checks to see if user has time to answer the questions of an article.
         :Return: None
         """
-        is_game_over = self.game.article_timer_active and self.game.get_article_timer() == 0
+        is_game_over = self.game.article_timer_active and self.game.get_article_timer() <= 0
         if not is_game_over:
             return
 
+        print("Ending game")
         self.game.end_game()
         self.client.games.pop(self.og_interaction.user.id)
         embed = create_time_up_embed(self.player, self.game)
 
         await self.og_interaction.edit_original_response(embed=embed, view=None)
 
-        self.check_time.stop()
+        self.check_time.cancel()

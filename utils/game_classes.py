@@ -3,29 +3,42 @@ import time
 from enum import Enum
 
 from article_overload.constants import CORRECT_ANSWER_POINTS, INCORRECT_ANSWER_POINTS
+from article_overload.log import our_logger
 from discord.ext import tasks
 
 from .constants import ABILITIES_THRESHOLD, ARTICLE_TIMER, COOLDOWN_DURATION
 
 
-def ability_cooldown() -> None:
+def ability_cooldown(player: "Player", game: "Game", game_view: "GameView") -> None:  # NOQA: F821
     """Run a callback for a button."""
+    our_logger(f"{player.display_name} used the cooldown ability.")
 
 
-def ability_remove_question() -> None:
+def ability_remove_question(player: "Player", game: "Game", game_view: "GameView") -> None:  # NOQA: F821
     """Run a callback for a button."""
+    our_logger(f"{player.display_name} used the remove questions ability.")
 
 
-def ability_extend_timer() -> None:
+def ability_extend_timer(player: "Player", game: "Game", game_view: "GameView") -> None:  # NOQA: F821
     """Run a callback for a button."""
+    if game.get_article_timer() <= 0:
+        result = f"{player.display_name} attempted to use ability_cooldown. Nothing to cool down!"
+    else:
+        # Changes start time according to coldown duration
+        game.article_timer_start += COOLDOWN_DURATION
+        game_view.round_end_time += int(COOLDOWN_DURATION)
+        result = (
+            f"{player.display_name} used the extend timer ability. Timer increased by {COOLDOWN_DURATION} seconds."
+        )
+    our_logger.info(result)
 
 
 class AbilityType(Enum):
     """a class to represent abilities available to a player."""
 
-    COOLDOWN = "Cooldown"
-    REMOVE_QUESTION = "Cd"
-    EXTEND_TIMER = "CD"
+    COOLDOWN = (ability_cooldown,)
+    REMOVE_QUESTION = (ability_remove_question,)
+    EXTEND_TIMER = (ability_extend_timer,)
 
 
 class Player:
@@ -226,7 +239,7 @@ class Player:
         return self.abilities_meter
 
     @tasks.loop(seconds=5)
-    async def async_loop_abilities_meter(self, value: int = 10) -> AbilityType | None:
+    async def async_loop_abilities_meter(self, value: int = 40) -> AbilityType | None:
         """Update the abilities meter every 5 seconds."""
         self.abilities_meter += value
         print(f"Abilities_meter value: {self.abilities_meter}")
@@ -387,4 +400,4 @@ class Game:
         if self.article_timer_active:
             elapsed = time.time() - self.article_timer_start
             return max(0, self.article_timer - elapsed)
-        return self.article_timer
+        return 0
