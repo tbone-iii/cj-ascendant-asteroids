@@ -1,6 +1,6 @@
 import time
 
-from discord import ButtonStyle, Embed, Interaction, InteractionMessage, SelectOption
+from discord import ButtonStyle, Interaction, InteractionMessage, SelectOption
 from discord.ext import tasks
 from discord.ui import Button, Select, View, button
 from utils.game_classes import Game, Player
@@ -90,6 +90,9 @@ class GameView(View):
         self.client = client
         self.article = article
         self.game = game
+        self.round_end_time = 0
+
+        self.ability_buttons_list = []
 
         player = self.game.get_player(self.og_interaction.user.id)
         if player is None:
@@ -98,8 +101,33 @@ class GameView(View):
 
         self.sentence_selection = SentenceSelect(self.article.questions)
         self.add_item(self.sentence_selection)
+        self.player.update_abilities_meter(100)
+        self.create_ability_buttons()
 
         self.check_time.start()
+
+    def create_ability_buttons(self) -> None:
+        """Create and add the players abilities as buttons."""
+        for buttons in self.ability_buttons_list:
+            self.remove_item(buttons)
+
+        for ability in self.player.abilities:
+            ability_button = Button(style=ButtonStyle.blurple, label=f"{ability.name}")
+
+            async def general_callback(interaction: Interaction) -> None:
+                """Temporary callback for ability buttons."""
+                await interaction.response.defer()
+                await interaction.followup.send("henlo stinky")
+                self.remove_item(ability_button)  # NOQA: B023
+                self.player.abilities.remove(ability)  # NOQA: B023
+                await self.og_interaction.edit_original_response(
+                    embed=create_article_embed(self.article, self.player, self.game, self.round_end_time),
+                    view=self,
+                )
+
+            ability_button.callback = general_callback
+            self.ability_buttons_list.append(ability_button)
+            self.add_item(ability_button)
 
     @button(label="Submit", style=ButtonStyle.green, row=1)
     async def submit_answer(self, interaction: Interaction, _: Button) -> InteractionMessage | None:
@@ -119,6 +147,7 @@ class GameView(View):
             )
 
         self.game.stop_article_timer()
+        self.game.players[0].async_loop_abilities_meter.cancel()
 
         selection = self.sentence_selection.values[0]  # noqa: PD011
         is_correct = selection == self.article.false_statement
@@ -161,18 +190,12 @@ class GameView(View):
         self.sentence_selection = SentenceSelect(self.article.questions)
         self.add_item(self.sentence_selection)
 
-        embed = Embed(
-            title="Article Overload!",
-            description="Please read the following article summary and "
-            "use the select menu below to choose which sentence is false:",
-        )
-        embed.add_field(name="", value=f"{self.article.marked_up_summary}")
-        embed.add_field(name="Time remaining:", value=f"<t:{int(time.time()+self.game.article_timer)}:R>", inline=True)
-
         self.game.start_article_timer()
+        self.game.players[0].async_loop_abilities_meter.start()
+        self.round_end_time = int(time.time() + self.game.article_timer)
 
-        embed = create_article_embed(self.article, self.player, self.game)
-
+        embed = create_article_embed(self.article, self.player, self.game, self.round_end_time)
+        self.create_ability_buttons()
         return await interaction.edit_original_response(embed=embed, view=self)
 
     async def interaction_check(self, interaction: Interaction) -> bool:

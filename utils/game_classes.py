@@ -3,16 +3,29 @@ import time
 from enum import Enum
 
 from article_overload.constants import CORRECT_ANSWER_POINTS, INCORRECT_ANSWER_POINTS
+from discord.ext import tasks
 
 from .constants import ABILITIES_THRESHOLD, ARTICLE_TIMER, COOLDOWN_DURATION
+
+
+def ability_cooldown() -> None:
+    """Run a callback for a button."""
+
+
+def ability_remove_question() -> None:
+    """Run a callback for a button."""
+
+
+def ability_extend_timer() -> None:
+    """Run a callback for a button."""
 
 
 class AbilityType(Enum):
     """a class to represent abilities available to a player."""
 
     COOLDOWN = "Cooldown"
-    REMOVE_QUESTION = "Remove Question"
-    EXTEND_TIMER = "Extend Timer"
+    REMOVE_QUESTION = "Cd"
+    EXTEND_TIMER = "CD"
 
 
 class Player:
@@ -152,6 +165,7 @@ class Player:
         self.score += CORRECT_ANSWER_POINTS
         self.correct += 1
         self.answer_streak += 1
+        self.update_abilities_meter(value=20)
 
     def add_incorrect(self) -> None:
         """Remove points for incorrect answer and update streaks."""
@@ -211,12 +225,27 @@ class Player:
         """Get the value of player's ability meter."""
         return self.abilities_meter
 
+    @tasks.loop(seconds=5)
+    async def async_loop_abilities_meter(self, value: int = 10) -> AbilityType | None:
+        """Update the abilities meter every 5 seconds."""
+        self.abilities_meter += value
+        print(f"Abilities_meter value: {self.abilities_meter}")
+        if self.abilities_meter >= self.abilities_threshold:
+            self.reset_abilities_meter()
+            new_ability = secrets.choice(list(AbilityType))
+            print(f"Ability [{new_ability}] added!")
+            self.add_ability(new_ability)
+            return new_ability
+        return None
+
     def update_abilities_meter(self, value: int) -> AbilityType | None:
         """Update the abilities meter and return the new ability if threshold is reached."""
         self.abilities_meter += value
+        print(f"Abilities_meter value: {self.abilities_meter}")
         if self.abilities_meter >= self.abilities_threshold:
-            self.abilities_meter = 0
+            self.reset_abilities_meter()
             new_ability = secrets.choice(list(AbilityType))
+            print(f"Ability [{new_ability}] added!")
             self.add_ability(new_ability)
             return new_ability
         return None
@@ -304,11 +333,13 @@ class Game:
         self.state = "in_progress"
         self.start_time = time.time()
         self.article_timer = article_timer
+        self.players[0].async_loop_abilities_meter.start()
 
     def end_game(self) -> None:
         """End the game by changing the state to 'ended'."""
         self.state = "ended"
         self.end_time = time.time()
+        self.players[0].async_loop_abilities_meter.cancel()
 
     def get_player(self, player_id: int) -> "Player | None":
         """Retrieve a player by their ID.

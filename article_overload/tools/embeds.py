@@ -1,6 +1,5 @@
 from discord import Color, Embed
 from discord.app_commands import MissingPermissions
-from utils.constants import ARTICLE_TIMER
 from utils.game_classes import Game, Player
 
 from article_overload.constants import (
@@ -118,7 +117,7 @@ def create_start_game_embed(player: Player) -> Embed:
     return embed
 
 
-def create_article_embed(article: Article, player: int | Player, game: Game) -> Embed:
+def create_article_embed(article: Article, player: int | Player, game: Game, round_end_time: int) -> Embed:
     """Create a Discord embed containing the article summary and options a user can pick from.
 
     Parameters
@@ -132,6 +131,9 @@ def create_article_embed(article: Article, player: int | Player, game: Game) -> 
     game : Game
         The game for which the article embed should be created for
 
+    round_end_time: int
+        The date in seconds, when the round is expected to end.
+
     Returns
     -------
     discord.Embed
@@ -140,10 +142,11 @@ def create_article_embed(article: Article, player: int | Player, game: Game) -> 
     """
     embed = Embed(
         title="Article Overload!",
-        description=f"Please read the following article summary and use the \
-            select menu below to choose which sentence is false:\n\n{article.marked_up_summary}",
+        description="Please read the following article summary and "
+        "use the select menu below to choose which sentence is false:",
     )
-    embed.add_field(name="Time Left", value=f"Ending <t:{int(game.article_timer_start+ARTICLE_TIMER)}:R>")
+    embed.add_field(name="", value=f"{article.marked_up_summary}")
+    embed.add_field(name="Time remaining:", value=f"<t:{round_end_time}:R>", inline=True)
 
     player_instance = game.get_player(player) if isinstance(player, int) else player
     if player_instance is None:
@@ -152,6 +155,7 @@ def create_article_embed(article: Article, player: int | Player, game: Game) -> 
     embed.add_field(
         name="Answer Streak",
         value=str(player_instance.answer_streak),
+        inline=False,
     )
     return embed
 

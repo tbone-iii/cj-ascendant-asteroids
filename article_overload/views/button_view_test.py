@@ -1,11 +1,12 @@
 import time
 
-from discord import ButtonStyle, Embed, Interaction
+from discord import ButtonStyle, Interaction
 from discord.ui import Button, View, button
 from utils.constants import DifficultyTimer
 from utils.game_classes import Game
 
 from article_overload.bot import ArticleOverloadBot
+from article_overload.tools.embeds import create_article_embed
 
 from .game_view import GameView
 
@@ -67,19 +68,10 @@ class StartButtonView(View):
         self.client.logger.info(msg)
 
         await interaction.response.defer()
+        round_end_time = int(time.time() + difficulty.value)
 
         article = await self.client.database_handler.get_random_article()
-        embed = Embed(
-            title="Article Overload!",
-            description="Please read the following article summary and "
-            "use the select menu below to choose which sentence is false:",
-        )
-        embed.add_field(name="", value=f"{article.marked_up_summary}")
-        embed.add_field(
-            name="Round ends:",
-            value=f"<t:{int(time.time() + difficulty.value)}:R>",
-            inline=True,
-        )
+        embed = create_article_embed(article, self.game.players[0], self.game, round_end_time)
 
         self.game.start_game(article_timer=difficulty.value)
         self.game.start_article_timer()
@@ -96,5 +88,6 @@ class StartButtonView(View):
                 article=article,
                 game=self.game,
                 client=self.client,
+                round_end_time=round_end_time,
             ),
         )
