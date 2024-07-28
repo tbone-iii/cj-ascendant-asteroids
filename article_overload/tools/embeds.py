@@ -145,12 +145,13 @@ def create_article_embed(article: Article, player: int | Player, game: Game) -> 
         description="Please read the following article summary and "
         "use the select menu below to choose which sentence is false:",
     )
-    embed.add_field(name="", value=f"{article.marked_up_summary}", inline=False)
+    embed.add_field(name=article.title, value=article.marked_up_summary, inline=False)
     embed.add_field(
         name="Round ends:",
         value=f"<t:{int(time.time() + game.article_timer)}:R>",
         inline=False,
     )
+    embed.set_footer(text=f"Author: {article.author}")
 
     player_instance = game.get_player(player) if isinstance(player, int) else player
     if player_instance is None:
