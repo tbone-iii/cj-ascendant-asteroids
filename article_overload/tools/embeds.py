@@ -1,4 +1,5 @@
 import time
+from secrets import choice
 
 from discord import Color, Embed
 from discord.app_commands import MissingPermissions
@@ -37,7 +38,12 @@ def create_warning_embed(title: str = "\u200b", description: str = "\u200b") -> 
     """
     embed = Embed(title=title, description=description, color=COLOR_NEUTRAL)
     embed.set_thumbnail(
-        url=ImageURLs.WARNING,
+        url=choice(
+            (
+                ImageURLs.WARNING,
+                ImageURLs.NOT_ALLOWED_SIGN,
+            )
+        ),
     )
     return embed
 
@@ -50,14 +56,17 @@ def create_error_embed(title: str = "\u200b", description: str = "\u200b") -> Em
     """
     embed = Embed(title=title, description=description, color=COLOR_BAD)
     embed.set_thumbnail(
-        url=ImageURLs.ERROR,
+        url=choice(
+            (
+                ImageURLs.ERROR,
+                ImageURLs.NO_FINGER,
+            )
+        )
     )
     return embed
 
 
-def create_missing_permissions_embed(
-    error: MissingPermissions,
-) -> Embed:  # TODO: Review what actual error type is and where it's sourced from
+def create_missing_permissions_embed(error: MissingPermissions) -> Embed:
     """Missing permissions embed.
 
     Description: Creates an error embed for missing permissions.

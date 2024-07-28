@@ -83,11 +83,11 @@ def build_sentence_from_string(sentence: str) -> Sentence:
     """
     if sentence.startswith("[") and sentence.endswith("]"):
         cleaned_sentence = sentence.removeprefix("[").removesuffix("]")
-        return Sentence(cleaned_sentence, sentence_type=SentenceType.TRUE)
+        return Sentence(cleaned_sentence, sentence_type=SentenceType.FALSE)
 
     if sentence.startswith("<") and sentence.endswith(">"):
         cleaned_sentence = sentence.removeprefix("<").removesuffix(">")
-        return Sentence(cleaned_sentence, sentence_type=SentenceType.FALSE)
+        return Sentence(cleaned_sentence, sentence_type=SentenceType.TRUE)
 
     if sentence.startswith('"') and sentence.endswith('"'):
         cleaned_sentence = sentence.removeprefix('"').removesuffix('"')
