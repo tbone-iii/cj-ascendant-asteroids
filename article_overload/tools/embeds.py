@@ -11,7 +11,6 @@ from article_overload.constants import (
     INCORRECT_ANSWER_POINTS,
     ImageURLs,
 )
-from article_overload.db.objects import Article
 from article_overload.exceptions import PlayerNotFoundError
 from article_overload.game_classes import Game, Player
 
@@ -120,13 +119,13 @@ def create_start_game_embed(player: Player) -> Embed:
     return embed
 
 
-def create_article_embed(article: Article, player: int | Player, game: Game) -> Embed:
+def create_article_embed(marked_up_summary: str, player: int | Player, game: Game) -> Embed:
     """Create a Discord embed containing the article summary and options a user can pick from.
 
     Parameters
     ----------
-    article : Article
-        The article to retrieve the summary from
+    marked_up_summary : str
+        The summary of the article with the options marked up.
 
     player : Integer | Player
         The player_id or player object for whom the embed is to be created.
@@ -186,7 +185,7 @@ def create_correct_answer_embed(player: Player) -> Embed:
     )
 
 
-def create_incorrect_answer_embed(player: Player, article: Article) -> Embed:
+def create_incorrect_answer_embed(player: Player, highlighted_summary: str) -> Embed:
     """Create a Discord embed for getting an incorrect answer.
 
     Description: Sends user an embed containing points lost and reset answer streak
@@ -196,8 +195,9 @@ def create_incorrect_answer_embed(player: Player, article: Article) -> Embed:
     player : Player
         The player object for whom the embed is to be created.
 
-    article : Article
-        The article containing the correct answer option
+    highlighted_summary : str
+        The summary of the article with the false statement
+        highlighted and true statements with strikethrough.
 
     Returns
     -------
@@ -209,7 +209,7 @@ def create_incorrect_answer_embed(player: Player, article: Article) -> Embed:
         title="Incorrect!",
         description=f"You did not select the false statement correctly! You lost {INCORRECT_ANSWER_POINTS} points \
             and your score is now {player.get_score()}! \
-                    Press continue to move on\n\nCorrect Answer: {article.highlight_answer_in_summary}",
+                    Press continue to move on\n\nCorrect Answer: {highlighted_summary}",
         color=COLOR_BAD,
     )
 

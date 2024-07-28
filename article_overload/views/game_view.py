@@ -133,7 +133,7 @@ class GameView(View):
 
         self.sentence: str | None = None
 
-        self.sentence_selection = SentenceSelect(self.article.questions)
+        self.sentence_selection = SentenceSelect(self.article_handler.raw_text_active_sentences)
         self.add_item(self.sentence_selection)
 
     @button(label="Submit", style=ButtonStyle.green, row=1)

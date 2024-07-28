@@ -390,8 +390,9 @@ async def test_get_random_article_from_sample_db(
     setup_sample_db_file: DatabaseSetupInfo,
 ) -> None:
     database_handler = await handler.DatabaseHandler.create(setup_sample_db_file.database_url)
-    retrieved_article = await database_handler.get_random_article()
+    retrieved_article_handler = await database_handler.get_random_article()
 
+    retrieved_article = retrieved_article_handler._article
     assert retrieved_article is not None
     assert retrieved_article.id is not None
     assert retrieved_article.id in [article.id for article in sample_article_records]

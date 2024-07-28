@@ -83,4 +83,7 @@ ignore = [
     "ANN102",
     # Assert error.
     "S101",
+    # Line too long warning in unit tests
+    "E501",
+    "SLF001",
 ]
