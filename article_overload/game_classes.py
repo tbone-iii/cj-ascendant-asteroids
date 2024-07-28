@@ -1,5 +1,8 @@
 import secrets, time, random
 from enum import Enum
+
+from article_overload.constants import CORRECT_ANSWER_POINTS, INCORRECT_ANSWER_POINTS
+from article_overload.log import our_logger
 from discord.ext import tasks
 from .log import our_logger
 
@@ -410,4 +413,4 @@ class Game:
         if self.article_timer_active:
             elapsed = time.time() - self.article_timer_start
             return max(0, self.article_timer - elapsed)
-        return self.article_timer
+        return 0

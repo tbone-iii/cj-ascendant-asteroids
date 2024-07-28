@@ -173,6 +173,7 @@ class GameView(View):
 
     async def create_ability_buttons(self, org_interaction: Interaction) -> None:
         """Create and add the players abilities as buttons."""
+        # Remove existing buttons to avoid creating duplicates
         for buttons in self.ability_buttons_list:
             self.ability_buttons_list.remove(buttons)
             self.remove_item(buttons)
@@ -222,3 +223,4 @@ class GameView(View):
             await interaction.response.send_message("You can't click this!", ephemeral=True)
             return False
         return True
+
