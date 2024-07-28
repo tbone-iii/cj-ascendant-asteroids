@@ -19,7 +19,7 @@ def main() -> None:
 
     If the Article table exists, it will overwrite.
     """
-    json_file_name = "./pregenerate_data/sample_articles.json"
+    json_file_name = "./pregenerate_data/articles.json"
     path = Path(__file__).resolve().parent / json_file_name
     database_relative_path = "pregenerate_data/article_overload.db"
     database_url = f"sqlite+aiosqlite:///{database_relative_path}"

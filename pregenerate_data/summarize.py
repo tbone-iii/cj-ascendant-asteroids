@@ -2,9 +2,9 @@ import datetime
 import json
 import os
 import secrets
+from datetime import UTC
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
@@ -13,7 +13,8 @@ load_dotenv()
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 NEWS_SITE_RSS_URL = "https://finance.yahoo.com/rss/"
 TOOLONG_DEBUG_SIZE = 80
-DEFAULT_TIMEZONE = ZoneInfo("America/Los_Angeles")
+
+DEFAULT_TIMEZONE = UTC
 
 JSON_LOCATION = Path(__file__).resolve().parent / "articles.json"
 
@@ -138,7 +139,7 @@ Author: {self.article_context_info.author}
 
         year = self.article_context_info.date.year
         month = self.article_context_info.date.month
-        day = self.article_context_info
+        day = self.article_context_info.date.day
         articles.append(
             {
                 "title": self.article_context_info.title,

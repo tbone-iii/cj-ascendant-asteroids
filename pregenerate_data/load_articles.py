@@ -32,15 +32,19 @@ def load_articles(json_loaded_body: JsonBody) -> list[Article]:
     article_dicts = json_loaded_body
     articles = []
     for article_dict in article_dicts:
-        year, month, day = article_dict["date_published"].split("-")
-        article_dict["date_published"] = datetime(
-            year=int(year),
-            month=int(month),
-            day=int(day),
-            tzinfo=UTC,
-        )
-        article = Article(**article_dict)
-        articles.append(article)
+        try:
+            year, month, day = article_dict["date_published"].split("-")
+            article_dict["date_published"] = datetime(
+                year=int(year),
+                month=int(month),
+                day=int(day),
+                tzinfo=UTC,
+            )
+            article = Article(**article_dict)
+            articles.append(article)
+        except Exception as e:  # noqa: BLE001
+            print(e)
+            continue
     return articles
 
 
