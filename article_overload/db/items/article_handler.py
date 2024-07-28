@@ -127,4 +127,7 @@ def get_false_sentence(sentences: list[Sentence]) -> Sentence:
 
     :Return: `Sentence`
     """
-    return next(sentence for sentence in sentences if sentence.sentence_type == SentenceType.FALSE)
+    try:
+        return next(sentence for sentence in sentences if sentence.sentence_type == SentenceType.FALSE)
+    except StopIteration:
+        return Sentence("<No false statement found.>", sentence_type=SentenceType.FALSE)
