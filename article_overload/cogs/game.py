@@ -37,7 +37,7 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
         name="play",
         description=CommandDescriptions.GAME_START.value,
     )
-    async def article_overload(self, interaction: Interaction) -> None:
+    async def article_overload(self, interaction: Interaction) -> None:  # NOQA: PLR0915
         """Bot command.
 
         Description: Starts the game
@@ -196,19 +196,22 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
             interaction.user.id,
             article_handler,
             timeout=game.article_timer * 0.75,
+            player=player
         )
 
+        await game_view.create_ability_buttons(org_interaction=interaction)
         await interaction.edit_original_response(
             embed=embed,
             view=game_view,
         )
+        player.async_loop_abilities_meter.start()
         await game_view.wait()
 
         game.stop_article_timer()
 
         if game_view.sentence is None:
             game_view = GameView(
-                interaction.user.id, article_handler=article_handler, timeout=game.article_timer * 0.25
+                interaction.user.id, article_handler=article_handler, timeout=game.article_timer * 0.25, player=player
             )
             embed.set_image(url=ImageURLs.HURRY)
             await interaction.edit_original_response(embed=embed, view=game_view)

@@ -4,7 +4,9 @@ from discord.ui import Button, Select, View, button
 from article_overload.constants import DIGIT_TO_EMOJI, DifficultyTimer
 from article_overload.db.items.article_handler import ArticleHandler
 from article_overload.db.items.sentence import Sentence
-from article_overload.tools.embeds import create_error_embed
+from article_overload.game_classes import Player, AbilityType
+from article_overload.tools.embeds import create_error_embed, create_article_embed
+
 
 
 class StartButtonView(View):
@@ -102,6 +104,33 @@ class SentencePicker(Select):
         await interaction.response.defer()
 
 
+class AbilityButton(Button):
+    """Ability button class."""
+
+    def __init__(
+        self, label: str, parent_view: "GameView", ability: AbilityType, org_interaction: Interaction
+    ) -> None:
+        super().__init__(label=label)
+        self.parent_view = parent_view
+        self.ability = ability
+        self.org_interaction = org_interaction
+
+    async def callback(self, interaction: Interaction):
+        """Callback for ability buttons."""
+        await interaction.response.defer()
+
+        self.ability.value[0](self.parent_view.player, self.parent_view)
+        self.parent_view.remove_item(self)
+        self.parent_view.ability_buttons_list.remove(self)
+        self.parent_view.player.abilities.remove(self.ability)
+        await self.org_interaction.edit_original_response(
+            embed=create_article_embed(
+                self.parent_view.article_handler, self.parent_view.player, self.parent_view.player.game
+            ),
+            view=self.parent_view,
+        )
+
+
 class ContinueButtonView(View):
     """Continue button view class."""
 
@@ -128,7 +157,7 @@ class ContinueButtonView(View):
 class GameView(View):
     """Game view class."""
 
-    def __init__(self, org_user: int, article_handler: ArticleHandler, timeout: float) -> None:
+    def __init__(self, org_user: int, article_handler: ArticleHandler, timeout: float, player: Player) -> None:
         """Subclass of View.
 
         Description: Initializes View subclass to create a game view.
@@ -137,11 +166,35 @@ class GameView(View):
         super().__init__(timeout=timeout)
         self.org_user = org_user
         self.article_handler = article_handler
+        self.player = player
+        self.round_end_time = 0
+        self.ability_buttons_list = []
 
         self.sentence: Sentence | None = None  # TODO: None? Rethink
 
         self.sentence_picker = SentencePicker(article_handler.active_sentences)
         self.add_item(self.sentence_picker)
+        self.player.update_abilities_meter(100)
+
+    async def create_ability_buttons(self, org_interaction: Interaction) -> None:
+        """Create and add the players abilities as buttons."""
+        # Remove existing buttons to avoid creating duplicates
+        for buttons in self.ability_buttons_list:
+            self.ability_buttons_list.remove(buttons)
+            self.remove_item(buttons)
+
+        for i, ability in enumerate(self.player.abilities):
+            ability_button = AbilityButton(
+                label=ability.name, parent_view=self, ability=ability, org_interaction=org_interaction
+            )
+            ability_button.custom_id = str(i)
+
+            self.ability_buttons_list.append(ability_button)
+            self.add_item(ability_button)
+            await org_interaction.edit_original_response(
+                embed=create_article_embed(self.article_handler, self.player, self.player.game),
+                view=self,
+            )
 
     @button(label="Submit", style=ButtonStyle.green, row=1)
     async def submit_answer(self, interaction: Interaction, _: Button) -> None:

@@ -153,6 +153,9 @@ def create_article_embed(article_handler: ArticleHandler, player: int | Player, 
     game : Game
         The game for which the article embed should be created for
 
+    round_end_time: int
+        The date in seconds, when the round is expected to end.
+
     Returns
     -------
     discord.Embed
