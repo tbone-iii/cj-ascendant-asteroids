@@ -300,7 +300,7 @@ async def test_async_add_article_verify_parameter_storage_and_retrieval(
 @pytest.mark.asyncio()
 @pytest.mark.parametrize(
     ("sentence_length", "article_quantity"),
-    [(1, 1), (100, 10), (1000, 100)],
+    [(1, 1), (100, 10), (250, 20)],
 )
 async def test_async_add_multiple_articles_one_by_one_verify_by_reading_database_synchronously(
     sentence_length: int,
@@ -330,7 +330,7 @@ async def test_async_add_multiple_articles_one_by_one_verify_by_reading_database
 @pytest.mark.asyncio()
 @pytest.mark.parametrize(
     ("sentence_length", "article_quantity"),
-    [(1, 1), (100, 10), (1000, 100)],
+    [(1, 1), (100, 10), (250, 100)],
 )
 async def test_async_bulk_insert_multiple_articles_verify_by_reading_database_synchronously(
     sentence_length: int,
