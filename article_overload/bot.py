@@ -152,6 +152,6 @@ class ArticleOverloadBot(commands.Bot):
 def clear_console() -> None:
     """Clear the console screen."""
     if platform.system() == "Windows":
-        subprocess.run(["cmd.exe", "/c", "cls"], check=True)  # , ruff is overly strict here
+        subprocess.run(["cmd.exe", "/c", "cls"], check=True)  # noqa: S607, S603, ruff is overly strict here
     else:
-        subprocess.run(["clear"], check=True)  # , ruff is overly strict here
+        subprocess.run(["clear"], check=True)  # noqa: S607, S603 ruff is overly strict here

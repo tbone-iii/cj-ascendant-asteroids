@@ -11,6 +11,7 @@ from article_overload.constants import (
     INCORRECT_ANSWER_POINTS,
     ImageURLs,
 )
+from article_overload.db.items.article_handler import ArticleHandler
 from article_overload.exceptions import PlayerNotFoundError
 from article_overload.game_classes import Game, Player
 
@@ -119,13 +120,13 @@ def create_start_game_embed(player: Player) -> Embed:
     return embed
 
 
-def create_article_embed(marked_up_summary: str, player: int | Player, game: Game) -> Embed:
+def create_article_embed(article_handler: ArticleHandler, player: int | Player, game: Game) -> Embed:
     """Create a Discord embed containing the article summary and options a user can pick from.
 
     Parameters
     ----------
-    marked_up_summary : str
-        The summary of the article with the options marked up.
+    article_handler : ArticleHandler
+        The article handler object containing the article to be displayed.
 
     player : Integer | Player
         The player_id or player object for whom the embed is to be created.
@@ -144,13 +145,13 @@ def create_article_embed(marked_up_summary: str, player: int | Player, game: Gam
         description="Please read the following article summary and "
         "use the select menu below to choose which sentence is false:",
     )
-    embed.add_field(name=article.title, value=article.marked_up_summary, inline=False)
+    embed.add_field(name=article_handler.title, value=article_handler.marked_up_summary, inline=False)
     embed.add_field(
         name="Round ends:",
         value=f"<t:{int(time.time() + game.article_timer)}:R>",
         inline=False,
     )
-    embed.set_footer(text=f"Author: {article.author}")
+    embed.set_footer(text=f"Author: {article_handler.author}")
 
     player_instance = game.get_player(player) if isinstance(player, int) else player
     if player_instance is None:

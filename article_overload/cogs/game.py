@@ -90,12 +90,12 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
             game.add_session_id_for_player(player=player, session_id=session_record.id)
 
         while True:
-            article = await self.client.database_handler.get_random_article()
-            embed = create_article_embed(article, player, game)
+            article_handler = await self.client.database_handler.get_random_article()
+            embed = create_article_embed(article_handler=article_handler, player=player, game=game)
 
             game_view = GameView(
                 interaction.user.id,
-                article,
+                article_handler,
                 timeout=game.article_timer,
             )
 
@@ -111,14 +111,15 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
                 await interaction.edit_original_response(embed=create_time_up_embed(player, game), view=None)
                 break
 
-            is_correct = game_view.sentence == article.false_statement
+            is_correct = game_view.sentence == article_handler.false_sentence
             if is_correct:
                 player.add_correct()
                 embed = create_correct_answer_embed(player)
-
             else:
                 player.add_incorrect()
-                embed = create_incorrect_answer_embed(player, article)
+                embed = create_incorrect_answer_embed(
+                    player=player, highlighted_summary=article_handler.highlighted_summary
+                )
 
             session_id = game.get_session_id_for_player(player)
             if session_id is None:
@@ -126,7 +127,7 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
 
             # The Article Responses are for player telemetry on performance
             await self.client.database_handler.add_article_response_from_article(
-                article=article,
+                article=article_handler._article,  # noqa: SLF001
                 article_response=ArticleResponse(
                     user_id=player.player_id,
                     session_id=session_id,
@@ -151,6 +152,36 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
         await self.notify_database_of_game_end_for_players(game, game.players)
         return
 
+    @app_commands.command(name="end_game", description=CommandDescriptions.GAME_END.value)
+    async def end_game(self, interaction: Interaction) -> None:
+        """Bot command.
+
+        Description: Ends the game
+        :Return: None
+        """
+        game = self.client.games.get(interaction.user.id, None)
+        if game is None:
+            return await interaction.response.send_message(
+                embed=create_warning_embed(
+                    title="Not In Game!",
+                    description="You are not in a game!",
+                ),
+            )
+
+        game.end_game()
+        await self.notify_database_of_game_end_for_players(game, game.players)
+        duration = game.get_game_duration()
+        self.client.games.pop(interaction.user.id)
+
+        return await interaction.response.send_message(f"Game ended! Duration: {duration}")
+
+    @app_commands.command(name="list_abilities", description="List all possible abilities.")
+    async def list_abilities(self, interaction: Interaction) -> None:
+        """Bot command to list all possible abilities."""
+        abilities = [ability.value for ability in AbilityType]
+        abilities_list = "\n".join(abilities)
+        await interaction.response.send_message(f"Possible abilities:\n{abilities_list}")
+
     async def notify_database_of_game_end_for_players(self, game: Game, players: list[Player]) -> None:
         """Notify the database of the game end for all players.
 
@@ -163,13 +194,6 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
         ]
         scores = [player.get_score() for player in players]
         await self.database_handler.end_sessions(session_ids=session_ids, scores=scores)
-
-    @app_commands.command(name="list_abilities", description="List all possible abilities.")
-    async def list_abilities(self, interaction: Interaction) -> None:
-        """Bot command to list all possible abilities."""
-        abilities = [ability.value for ability in AbilityType]
-        abilities_list = "\n".join(abilities)
-        await interaction.response.send_message(f"Possible abilities:\n{abilities_list}")
 
 
 async def setup(client: ArticleOverloadBot) -> None:

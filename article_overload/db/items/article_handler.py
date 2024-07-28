@@ -93,6 +93,9 @@ def build_sentence_from_string(sentence: str) -> Sentence:
         cleaned_sentence = sentence.removeprefix('"').removesuffix('"')
         return Sentence(cleaned_sentence, sentence_type=SentenceType.NEUTRAL)
 
+    # TODO: This should never be reached, but workaround is to return a neutral sentence
+    return Sentence(sentence, sentence_type=SentenceType.NEUTRAL)
+
     raise ValueError
 
 
