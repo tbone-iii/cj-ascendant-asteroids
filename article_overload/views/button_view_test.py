@@ -88,6 +88,5 @@ class StartButtonView(View):
                 article=article,
                 game=self.game,
                 client=self.client,
-                round_end_time=round_end_time,
             ),
         )
