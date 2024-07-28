@@ -138,6 +138,7 @@ def create_start_game_embed(player: Player) -> Embed:
     embed.set_thumbnail(url=player.get_avatar_url())
     return embed
 
+
 def create_article_embed(article_handler: ArticleHandler, player: int | Player, game: Game) -> Embed:
     """Create a Discord embed containing the article summary and options a user can pick from.
 
