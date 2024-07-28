@@ -37,7 +37,7 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
         name="play",
         description=CommandDescriptions.GAME_START.value,
     )
-    async def article_overload(self, interaction: Interaction) -> None:
+    async def article_overload(self, interaction: Interaction) -> None:  # NOQA: PLR0915
         """Bot command.
 
         Description: Starts the game

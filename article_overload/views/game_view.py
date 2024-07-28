@@ -1,13 +1,12 @@
-import time
 from discord import ButtonStyle, Interaction, SelectOption
 from discord.ui import Button, Select, View, button
-from discord.ext import tasks
 
 from article_overload.constants import DIGIT_TO_EMOJI, DifficultyTimer
 from article_overload.db.items.article_handler import ArticleHandler
 from article_overload.db.items.sentence import Sentence
 from article_overload.game_classes import Player, AbilityType
 from article_overload.tools.embeds import create_error_embed, create_article_embed
+
 
 
 class StartButtonView(View):
@@ -104,8 +103,13 @@ class SentencePicker(Select):
         """
         await interaction.response.defer()
 
+
 class AbilityButton(Button):
-    def __init__(self, label: str, parent_view: "GameView", ability: AbilityType, org_interaction: Interaction):
+    """Ability button class."""
+
+    def __init__(
+        self, label: str, parent_view: "GameView", ability: AbilityType, org_interaction: Interaction
+    ) -> None:
         super().__init__(label=label)
         self.parent_view = parent_view
         self.ability = ability
@@ -114,13 +118,15 @@ class AbilityButton(Button):
     async def callback(self, interaction: Interaction):
         """Callback for ability buttons."""
         await interaction.response.defer()
-    
+
         self.ability.value[0](self.parent_view.player, self.parent_view)
-        self.parent_view.remove_item(self)  # NOQA: B023
+        self.parent_view.remove_item(self)
         self.parent_view.ability_buttons_list.remove(self)
-        self.parent_view.player.abilities.remove(self.ability)  # NOQA: B023
+        self.parent_view.player.abilities.remove(self.ability)
         await self.org_interaction.edit_original_response(
-            embed=create_article_embed(self.parent_view.article_handler, self.parent_view.player, self.parent_view.player.game),
+            embed=create_article_embed(
+                self.parent_view.article_handler, self.parent_view.player, self.parent_view.player.game
+            ),
             view=self.parent_view,
         )
 
@@ -163,13 +169,13 @@ class GameView(View):
         self.player = player
         self.round_end_time = 0
         self.ability_buttons_list = []
+        self.player.async_loop_abilities_meter.start()
 
         self.sentence: Sentence | None = None  # TODO: None? Rethink
 
         self.sentence_picker = SentencePicker(article_handler.active_sentences)
         self.add_item(self.sentence_picker)
         self.player.update_abilities_meter(100)
-
 
     async def create_ability_buttons(self, org_interaction: Interaction) -> None:
         """Create and add the players abilities as buttons."""
@@ -179,7 +185,9 @@ class GameView(View):
             self.remove_item(buttons)
 
         for i, ability in enumerate(self.player.abilities):
-            ability_button = AbilityButton(label=ability.name, parent_view=self, ability=ability, org_interaction=org_interaction)
+            ability_button = AbilityButton(
+                label=ability.name, parent_view=self, ability=ability, org_interaction=org_interaction
+            )
             ability_button.custom_id = str(i)
 
             self.ability_buttons_list.append(ability_button)
@@ -188,7 +196,6 @@ class GameView(View):
                 embed=create_article_embed(self.article_handler, self.player, self.player.game),
                 view=self,
             )
-
 
     @button(label="Submit", style=ButtonStyle.green, row=1)
     async def submit_answer(self, interaction: Interaction, _: Button) -> None:
@@ -212,7 +219,6 @@ class GameView(View):
         self.stop()
         return None
 
-
     async def interaction_check(self, interaction: Interaction) -> bool:
         """Interaction check callback.
 
@@ -223,4 +229,3 @@ class GameView(View):
             await interaction.response.send_message("You can't click this!", ephemeral=True)
             return False
         return True
-

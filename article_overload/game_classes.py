@@ -1,18 +1,18 @@
 import secrets, time, random
 from enum import Enum
 
-from article_overload.constants import CORRECT_ANSWER_POINTS, INCORRECT_ANSWER_POINTS
-from article_overload.log import our_logger
 from discord.ext import tasks
-from .log import our_logger
 
 from article_overload.constants import (
     ABILITIES_THRESHOLD,
     COOLDOWN_DURATION,
     CORRECT_ANSWER_POINTS,
+    EXTEND_TIMER_VALUE,
     INCORRECT_ANSWER_POINTS,
     EXTEND_TIMER_VALUE,
 )
+
+from .log import our_logger
 
 
 def ability_cooldown(player: "Player", game_view: "GameView") -> None:  # NOQA: F821
@@ -23,13 +23,12 @@ def ability_cooldown(player: "Player", game_view: "GameView") -> None:  # NOQA: 
 def ability_remove_question(player: "Player", game_view: "GameView") -> None:  # NOQA: F821
     """Run a callback for a button."""
     # Pick a random number and pop it from the selectview
-    print(game_view.sentence_picker.options)
     sentence_count = len(game_view.sentence_picker.options)
     idx = random.randint(0, sentence_count-1)
     while game_view.sentence_picker.options[idx-1].label[3::] in game_view.article_handler.false_sentence.text:
         idx = secrets.randbelow(sentence_count)
-    print(game_view.sentence_picker.options.pop(idx))
-    our_logger.info(f"{player.display_name} used the remove questions ability.")
+    msg = (game_view.sentence_picker.options.pop(idx))
+    our_logger.info(f"{player.display_name} used the remove questions ability to remove {msg}.")
 
 
 def ability_extend_timer(player: "Player", game_view: "GameView") -> None:  # NOQA: F821
@@ -401,7 +400,6 @@ class Game:
         """Start the timer countdown for the overload article questions."""
         self.article_timer_start = time.time()
         self.article_timer_active = True
-
 
     def stop_article_timer(self) -> None:
         """Stop the timer countdown for the overload article questions."""
