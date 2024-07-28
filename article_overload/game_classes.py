@@ -2,9 +2,12 @@ import secrets
 import time
 from enum import Enum
 
-from article_overload.constants import CORRECT_ANSWER_POINTS, INCORRECT_ANSWER_POINTS
-
-from .constants import ABILITIES_THRESHOLD, ARTICLE_TIMER, COOLDOWN_DURATION
+from article_overload.constants import (
+    ABILITIES_THRESHOLD,
+    COOLDOWN_DURATION,
+    CORRECT_ANSWER_POINTS,
+    INCORRECT_ANSWER_POINTS,
+)
 
 
 class AbilityType(Enum):
@@ -124,11 +127,11 @@ class Player:
                 result = f"Cooldown ability used! Timer reduced by {COOLDOWN_DURATION} seconds."
 
         elif ability == AbilityType.EXTEND_TIMER:
-            if game.article_timer <= 0:
+            if game.get_article_timer() <= 0:
                 result = "Nothing to extend!"
             else:
-                game.article_timer = ARTICLE_TIMER
-                result = "Extend Timer ability used! Timer reset to 15 seconds."
+                game.article_timer_start = game.article_timer
+                result = f"Extend Timer ability used! Timer reset to {game.article_timer} seconds."
 
         elif ability == AbilityType.REMOVE_QUESTION:
             result = "Remove Question ability used! (Effect TBD)"
@@ -269,7 +272,7 @@ class Game:
         self.start_time: float = 0.0
         self.end_time: float = 0.0
         # Article specific timing, capped 15 second allowed per question
-        self.article_timer: float = ARTICLE_TIMER
+        self.article_timer: float = 0.0
         self.article_timer_start: float = 0.0
         self.article_timer_active: bool = False
         # Metadata tracking for the game
@@ -346,10 +349,6 @@ class Game:
     def stop_article_timer(self) -> None:
         """Stop the timer countdown for the overload article questions."""
         self.article_timer_active = False
-
-    def reset_article_timer(self) -> None:
-        """Reset the timer countdown for the overload article."""
-        self.article_timer = ARTICLE_TIMER
 
     def get_article_timer(self) -> float:
         """Get the timer countdown for the overload article questions."""

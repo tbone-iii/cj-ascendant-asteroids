@@ -1,15 +1,25 @@
 from discord import Interaction, app_commands
 from discord.ext import commands
-from utils.constants import ARTICLE_TIMER
-from utils.game_classes import AbilityType, Game, Player
 
 from article_overload.bot import ArticleOverloadBot
+from article_overload.constants import MAX_INCORRECT
+from article_overload.db.objects import ArticleResponse
+from article_overload.exceptions import NoSessionFoundError
+from article_overload.game_classes import AbilityType, Game, Player
 from article_overload.tools.desc import CommandDescriptions
-from article_overload.tools.embeds import create_start_game_embed, create_warning_embed
-from article_overload.views.button_view_test import StartButtonView
+from article_overload.tools.embeds import (
+    create_article_embed,
+    create_correct_answer_embed,
+    create_incorrect_answer_embed,
+    create_start_game_embed,
+    create_time_up_embed,
+    create_too_many_incorrect_embed,
+    create_warning_embed,
+)
+from article_overload.views import ContinueButtonView, GameView, StartButtonView
 
 
-class ArticleOverload(commands.Cog):
+class ArticleOverload(commands.GroupCog, group_name="article_overload", group_description="Game commmands"):
     """ArticleOverload cog class."""
 
     def __init__(self, client: ArticleOverloadBot) -> None:
@@ -22,7 +32,7 @@ class ArticleOverload(commands.Cog):
         self.database_handler = client.database_handler
 
     @app_commands.command(
-        name="article_overload",
+        name="play",
         description=CommandDescriptions.GAME_START.value,
     )
     async def article_overload(self, interaction: Interaction) -> None:
@@ -32,12 +42,13 @@ class ArticleOverload(commands.Cog):
         :Return: None
         """
         if interaction.user.id in self.client.games:
-            return await interaction.response.send_message(
+            await interaction.response.send_message(
                 embed=create_warning_embed(
                     title="Already In Game!",
                     description="You are already in a game!",
                 ),
             )
+            return
 
         # Object layer
         game = Game()
@@ -53,190 +64,92 @@ class ArticleOverload(commands.Cog):
         self.client.games.update({interaction.user.id: game})
 
         # UI layer
+        start_button = StartButtonView(org_user=interaction.user.id)
         embed = create_start_game_embed(player)
-        return await interaction.response.send_message(
-            embed=embed,
-            view=StartButtonView(og_interaction=interaction, game=game, client=self.client),
-        )
+        await interaction.response.send_message(embed=embed, view=start_button)
+        await start_button.wait()
 
-    @app_commands.command(name="end_game", description=CommandDescriptions.GAME_END.value)
-    async def end_game(self, interaction: Interaction) -> None:
-        """Bot command.
-
-        Description: Ends the game
-        :Return: None
-        """
-        game = self.client.games.get(interaction.user.id, None)
-        if game is None:
-            return await interaction.response.send_message(
+        if start_button.difficulty is None:
+            await interaction.edit_original_response(
                 embed=create_warning_embed(
-                    title="Not In Game!",
-                    description="You are not in a game!",
+                    title="Expired!",
+                    description="You took too long to select a game difficulty",
+                )
+            )
+            return
+
+        msg = f"{interaction.user.name} started a game.\n"
+        self.client.logger.info(msg)
+
+        game.start_game(start_button.difficulty)
+        game.start_article_timer()
+
+        # The Sessions table in the database tracks users and scores
+        session_records = await self.client.database_handler.start_new_sessions(game.player_ids)
+        for player, session_record in zip(game.players, session_records, strict=False):
+            game.add_session_id_for_player(player=player, session_id=session_record.id)
+
+        while True:
+            article = await self.client.database_handler.get_random_article()
+            embed = create_article_embed(article, player, game)
+
+            game_view = GameView(
+                interaction.user.id,
+                article,
+                timeout=game.article_timer,
+            )
+
+            await interaction.edit_original_response(
+                embed=embed,
+                view=game_view,
+            )
+            await game_view.wait()
+
+            game.stop_article_timer()
+
+            if game_view.sentence is None:
+                await interaction.edit_original_response(embed=create_time_up_embed(player, game), view=None)
+                break
+
+            is_correct = game_view.sentence == article.false_statement
+            if is_correct:
+                player.add_correct()
+                embed = create_correct_answer_embed(player)
+
+            else:
+                player.add_incorrect()
+                embed = create_incorrect_answer_embed(player, article)
+
+            session_id = game.get_session_id_for_player(player)
+            if session_id is None:
+                raise NoSessionFoundError
+
+            # The Article Responses are for player telemetry on performance
+            await self.client.database_handler.add_article_response_from_article(
+                article=article,
+                article_response=ArticleResponse(
+                    user_id=player.player_id,
+                    session_id=session_id,
+                    response=game_view.sentence,
+                    is_correct=is_correct,
                 ),
             )
 
-        game.end_game()
+            if player.incorrect == MAX_INCORRECT:
+                await interaction.edit_original_response(
+                    embed=create_too_many_incorrect_embed(player, game),
+                    view=None,
+                )
+                break
+
+            continue_button = ContinueButtonView()
+
+            await interaction.edit_original_response(embed=embed, view=continue_button)
+            await continue_button.wait()
+
+        self.client.games.pop(player.get_player_id())
         await self.notify_database_of_game_end_for_players(game, game.players)
-        duration = game.get_game_duration()
-        self.client.games.pop(interaction.user.id)
-
-        return await interaction.response.send_message(f"Game ended! Duration: {duration}")
-
-    # ===================================================================
-    # Below commands are meant to demo the Game mechanics. In production,
-    # this should be bound by the Discord UI
-    # ===================================================================
-    @app_commands.command(name="show_game_time", description="Shows the current game duration.")
-    async def show_game_time(self, interaction: Interaction) -> None:
-        """Bot command.
-
-        Description: Shows the current game duration.
-        :Return: None
-        """
-        game = self.client.games.get(interaction.user.id)
-        if game is None:
-            return await interaction.response.send_message("Game not found!", ephemeral=True)
-
-        duration = game.get_game_duration()
-
-        return await interaction.response.send_message(f"Current game duration: {duration}")
-
-    @app_commands.command(name="show_article_timer", description="Shows the current article timer.")
-    async def show_article_timer(self, interaction: Interaction) -> None:
-        """Bot command.
-
-        Description: Shows the current article timer.
-        :Return: None
-        """
-        game = self.client.games.get(interaction.user.id)
-        if game is None:
-            return await interaction.response.send_message("Game not found!", ephemeral=True)
-
-        timer = game.get_article_timer()
-
-        return await interaction.response.send_message(f"Remaining time: {timer:.2f} seconds")
-
-    @app_commands.command(name="start_new_article_challenge", description="Starts an article countdown.")
-    async def start_new_article_challenge(self, interaction: Interaction) -> None:
-        """Bot command.
-
-        Description: Starts a new article challenge with a 15-second timer.
-        :Return: None
-        """
-        game = self.client.games.get(interaction.user.id)
-        if game is None:
-            return await interaction.response.send_message("Game not found!", ephemeral=True)
-
-        game.reset_article_timer()
-        game.start_article_timer()
-
-        return await interaction.response.send_message(f"New article: You have {ARTICLE_TIMER} seconds to answer.")
-
-    @app_commands.command(name="increment_score", description="Increments the player's score by a given value.")
-    async def increment_score(self, interaction: Interaction, points: int) -> None:
-        """Bot command.
-
-        Description: Increments the player's score by a given value.
-        :Return: None
-        """
-        game = self.client.games.get(interaction.user.id)
-        if game is None:
-            return await interaction.response.send_message("Game not found!", ephemeral=True)
-
-        player = game.get_player(interaction.user.id)
-        if player is None:
-            return await interaction.response.send_message("Player not found!", ephemeral=True)
-
-        player.update_score(points)
-        return await interaction.response.send_message(f"Score incremented! New score: {player.get_score()}")
-
-    @app_commands.command(name="increase_abilities_meter", description="Increases player's ability meter at value")
-    async def increase_abilities_meter(self, interaction: Interaction, value: int) -> None:
-        """Bot command.
-
-        Description: Increases the player's abilities meter by a given value.
-        :Return: None
-        """
-        game = self.client.games.get(interaction.user.id)
-        if game is None:
-            return await interaction.response.send_message("Game not found!", ephemeral=True)
-
-        player = game.get_player(interaction.user.id)
-        if player is None:
-            return await interaction.response.send_message("Player not found!", ephemeral=True)
-
-        new_ability = player.update_abilities_meter(value)
-        meter_percentage = player.get_abilities_meter_percentage()
-        if new_ability:
-            return await interaction.response.send_message(
-                f"Fully Powered up! Got {new_ability.value} ability! Abilities meter now reset to {meter_percentage}%",
-            )
-
-        return await interaction.response.send_message(f"Abilities meter increased! Now at {meter_percentage}%")
-
-    @app_commands.command(name="list_abilities", description="List all possible abilities.")
-    async def list_abilities(self, interaction: Interaction) -> None:
-        """Bot command to list all possible abilities."""
-        abilities = [ability.value for ability in AbilityType]
-        abilities_list = "\n".join(abilities)
-        await interaction.response.send_message(f"Possible abilities:\n{abilities_list}")
-
-    @app_commands.command(name="show_player_abilities", description="Shows the player's current abilities.")
-    async def show_player_abilities(self, interaction: Interaction) -> None:
-        """Bot command.
-
-        Description: Shows the player's current abilities.
-        :Return: None
-        """
-        game = self.client.games.get(interaction.user.id)
-        if game is None:
-            return await interaction.response.send_message("Game not found!", ephemeral=True)
-
-        player = game.get_player(interaction.user.id)
-        if player is None:
-            return await interaction.response.send_message("Player not found!", ephemeral=True)
-
-        abilities = player.get_abilities()
-        abilities_list = ", ".join([ability.name for ability in abilities])
-
-        return await interaction.response.send_message(f"Current abilities: {abilities_list}")
-
-    @app_commands.command(name="add_ability", description="Add an ability to the player.")
-    async def add_ability(self, interaction: Interaction, ability_name: str) -> None:
-        """Bot command to add an ability to the player."""
-        game = self.client.games.get(interaction.user.id)
-        if game is None:
-            return await interaction.response.send_message("Game not found!", ephemeral=True)
-
-        player = game.get_player(interaction.user.id)
-        if player is None:
-            return await interaction.response.send_message("Player not found!", ephemeral=True)
-
-        try:
-            ability = AbilityType[ability_name.upper()]
-            player.add_ability(ability)
-            await interaction.response.send_message(f"Added {ability.value} ability to the player!")
-        except KeyError:
-            await interaction.response.send_message("Invalid ability name!", ephemeral=True)
-
-    @app_commands.command(name="use_ability", description="Uses a player's ability.")
-    async def use_ability(self, interaction: Interaction, ability: AbilityType) -> None:
-        """Bot command to use a player's ability."""
-        game = self.client.games.get(interaction.user.id)
-        if not game:
-            return await interaction.response.send_message("Game not found!", ephemeral=True)
-
-        player = game.get_player(interaction.user.id)
-        if not player:
-            return await interaction.response.send_message("Player not found!", ephemeral=True)
-
-        result = player.use_ability(ability, game)
-
-        return await interaction.response.send_message(result)
-
-    # ===================================================================
-    # End of commands are meant to demo the Game mechanics
-    # ===================================================================
+        return
 
     async def notify_database_of_game_end_for_players(self, game: Game, players: list[Player]) -> None:
         """Notify the database of the game end for all players.
@@ -250,6 +163,13 @@ class ArticleOverload(commands.Cog):
         ]
         scores = [player.get_score() for player in players]
         await self.database_handler.end_sessions(session_ids=session_ids, scores=scores)
+
+    @app_commands.command(name="list_abilities", description="List all possible abilities.")
+    async def list_abilities(self, interaction: Interaction) -> None:
+        """Bot command to list all possible abilities."""
+        abilities = [ability.value for ability in AbilityType]
+        abilities_list = "\n".join(abilities)
+        await interaction.response.send_message(f"Possible abilities:\n{abilities_list}")
 
 
 async def setup(client: ArticleOverloadBot) -> None:

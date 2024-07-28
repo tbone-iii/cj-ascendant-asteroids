@@ -46,7 +46,7 @@ class Article(BaseModel):
         """
         return [question for index, question in enumerate(self.questions) if index != self.incorrect_option_index]
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def marked_up_summary(self) -> str:
         """Return the marked up version of the summary text (version containing the sentence options bolded).
@@ -65,7 +65,7 @@ class Article(BaseModel):
 
         return marked_up_text[:-1]
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def highlight_answer_in_summary(self) -> str:
         """Return the summary text with the false statement bolded with the other statements striked out.
@@ -159,7 +159,7 @@ class Score(BaseModel):
     score: int
     latest_played: datetime | None = None
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def latest_played_formatted(self) -> str:
         """Return a user-friendly date string.
@@ -180,14 +180,20 @@ class UserTopicStat(BaseModel):
     topic: str | None  # None corresponds to all topics
     user_id: int | None  # None corresponds to all users
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def ratio_correct(self) -> float:
         """Return the ratio of correct responses to total responses."""
+        if self.total_responses == 0:
+            return 0.0
+
         return round(self.total_correct / self.total_responses, 2)
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def percentage_correct(self) -> float:
         """Return the percentage of correct responses."""
+        if self.total_responses == 0:
+            return 0.0
+
         return round(self.total_correct / self.total_responses * 100, 2)

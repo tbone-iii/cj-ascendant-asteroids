@@ -8,16 +8,16 @@ from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands, tasks
-from utils.game_classes import Game
 
 from article_overload.db.handler import DatabaseHandler
+from article_overload.game_classes import Game
 
 from .constants import IGNORE_FILES, INTENTS, NEWS_STATIONS, OWNER_IDS
 from .exceptions import InvalidTokenError, NoTokenProvidedError
 from .tools.utils import color_message, get_json_file, read_text_file, update_json_file
 
 if TYPE_CHECKING:
-    from utils.game_classes import Game
+    from article_overload.game_classes import Game
 
 os.chdir("article_overload")  # TODO: Change this to pathlib usage
 database_path = "./assets/article_overload.db"
@@ -152,6 +152,6 @@ class ArticleOverloadBot(commands.Bot):
 def clear_console() -> None:
     """Clear the console screen."""
     if platform.system() == "Windows":
-        subprocess.run(["cmd.exe", "/c", "cls"], check=True)  # noqa: S603, S607, ruff is overly strict here
+        subprocess.run(["cmd.exe", "/c", "cls"], check=True)  # , ruff is overly strict here
     else:
-        subprocess.run(["clear"], check=True)  # noqa: S603, S607, ruff is overly strict here
+        subprocess.run(["clear"], check=True)  # , ruff is overly strict here

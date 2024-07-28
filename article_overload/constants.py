@@ -1,10 +1,14 @@
+from dataclasses import dataclass
+from enum import Enum
 from os import environ
 
-from discord import Intents
+from discord import Color, Intents
 from dotenv import load_dotenv
 
 load_dotenv()
 
+
+# Discord bot constants
 TOKEN: str | None = environ.get("TOKEN")
 
 COLORS: dict[str, str] = {
@@ -34,6 +38,41 @@ INTENTS: Intents = Intents(message_content=True)
 
 IGNORE_FILES = ["__init__.py"]
 
+
+# Game constants
 CORRECT_ANSWER_POINTS = 10
 INCORRECT_ANSWER_POINTS = 5
 MAX_INCORRECT = 3
+
+
+# Time specific constants
+class DifficultyTimer(Enum):
+    """Difficulty timer constants."""
+
+    EASY = 60.0
+    MEDIUM = 45.0
+    HARD = 20.0
+
+
+# Abilities specific constants
+ABILITIES_THRESHOLD = 100
+COOLDOWN_DURATION = 5.0
+EXTEND_TIMER_VALUE = 10.0
+
+
+# Display constants
+SCORE_BOARD_SPACING_SIZE = 20
+SCORE_BOARD_NUM_SCORES_TO_SHOW = 10
+SCORE_BOARD_COLOR = Color.gold()
+CHAR_LIMIT = 97
+
+
+# Image constants
+@dataclass(frozen=True)
+class ImageURLs:
+    """Track all image URLs and assets used here in a single location."""
+
+    SUCCESS = "https://media3.giphy.com/media/CaS9NNso512WJ4po0t/giphy.gif?cid=ecf05e47mgm8u6fljfxl5d5g0s01tp94qgn9exfwqvlpi3id&rid=giphy.gif&ct=s"
+    WARNING = "https://c.tenor.com/26pNa498OS0AAAAi/warning-joypixels.gif"
+    ERROR = "https://i.gifer.com/origin/bf/bf2d25254a2808835e20c9d698d75f28_w200.gif"
+    ANIMATED_TROPHY = "https://cdn.pixabay.com/animation/2023/06/13/15/13/15-13-22-874_256.gif"

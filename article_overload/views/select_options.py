@@ -7,7 +7,7 @@ from discord.ui import Button, Select, View, button
 class SelectOptions(Select):
     """Select menus class."""
 
-    def __init__(self, option_titles: tuple | list, option_values: tuple | list) -> None:
+    def __init__(self, option_titles: tuple | list, option_values: tuple | list, placeholder: str) -> None:
         """Subclass of Select.
 
         Description: Initializes a subclass of a Select menu to allow for selection of values.
@@ -26,6 +26,7 @@ class SelectOptions(Select):
             ],
             min_values=0,
             max_values=len(option_titles),
+            placeholder=placeholder,
         )
 
     async def callback(self, interaction: Interaction) -> None:
@@ -48,21 +49,23 @@ class SelectOptionsView(View):
         option_titles: list,
         option_values: list,
         value_range: tuple[int, int] = (1, 1),
+        placeholder: str = "Select a value",
+        timeout: int = 600,
     ) -> None:
         """Subclass of View.
 
         Description: Initializes View subclass to create a selection system.
         :Return: None
         """
-        super().__init__(timeout=600)
+        super().__init__(timeout=timeout)
 
         self.org_user = org_user
         self.clicked: list[str] = []
         self.min_val, self.max_val = value_range
 
-        self.generate_select_menus(option_titles, option_values)
+        self.generate_select_menus(option_titles, option_values, placeholder)
 
-    def generate_select_menus(self, option_titles: list[str], option_values: list[str]) -> None:
+    def generate_select_menus(self, option_titles: list[str], option_values: list[str], placeholder: str) -> None:
         """Create select menus.
 
         Description: Callback to generate as many select menus as needed for the options
@@ -74,10 +77,7 @@ class SelectOptionsView(View):
             strict=False,
         ):
             self.add_item(
-                SelectOptions(
-                    option_titles_chunk,
-                    option_values_chunk,
-                ),
+                SelectOptions(option_titles_chunk, option_values_chunk, placeholder),
             )
 
     @button(label="Complete", style=ButtonStyle.green, row=4)

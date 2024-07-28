@@ -1,1 +1,1 @@
-{"basic_cog": {"enabled": true}, "scoreboard": {"enabled": true}, "error": {"enabled": true}, "game": {"enabled": true}, "logger_cog": {"enabled": true}}
+{"moderation": {"enabled": true}, "user_statistics": {"enabled": true}, "error": {"enabled": true}, "game": {"enabled": true}}
