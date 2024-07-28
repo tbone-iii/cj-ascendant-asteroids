@@ -1,0 +1,312 @@
+from datetime import UTC, datetime
+from itertools import cycle
+
+from article_overload.db.models import ArticleRecord, ArticleResponseRecord, QuestionRecord, SessionRecord, SizeRecord
+from article_overload.db.objects import Article, Score
+
+from .context import article_overload  # noqa: F401
+
+
+def prebuild_article(sentence_length: int) -> Article:
+    """Prebuild articles for testing.
+
+    The sentence length parameter is used to extend the length of the body text and summary.
+
+    :Return: Prebuilt article object
+    """
+    body_text_multiplier = 100
+    return Article(
+        url="https://example.com",
+        body_text="This is a short body text. It is two sentences long." * body_text_multiplier,
+        summary="A new car. A new house. A new chair." * sentence_length,
+        questions=["A new car.", "A new dinosaur.", "A new house.", "A new chair."],
+        incorrect_option_index=1,
+        title="Example Title",
+        topic="General",
+        size="Small",
+        author="Author",
+        date_published=datetime(2021, 1, 1, tzinfo=UTC),
+    )
+
+
+def prebuild_articles(sentence_length: int, article_quantity: int) -> list[Article]:
+    """Prebuild articles for testing.
+
+    The sentence length parameter is used to extend the length of the body text and summary.
+
+    :Return: Prebuilt article object
+    """
+    size_generator = cycle(["Small", "Medium", "Large"])
+    return [
+        Article(
+            url=f"https://example{index}.com",
+            body_text=f"This is a long body text. {index}" * sentence_length,
+            summary=f"A new car. A new house. A new chair. {index}" * sentence_length,
+            questions=["A new car.", f"A new dinosaur. {index}", "A new house.", "A new chair."],
+            incorrect_option_index=1,
+            title=f"Example Title {index}",
+            topic="General {index}",
+            size=next(size_generator),
+            author=f"Author {index}",
+            date_published=datetime(2021, 1, 1, tzinfo=UTC),
+        )
+        for index in range(article_quantity)
+    ]
+
+
+sample_articles = [
+    Article(
+        id=1,
+        url="https://example1.com",
+        body_text="This is a short body text. It is two sentences long.",
+        summary='"Cats are recognized as Felis catus and are popular household pets."\n"They are over 60 recognized cat breeds, each unique."\n"Cats are most active during dawn and dusk, or crepuscular."\n"Cats contribute to human well-being by reducing stress and anxiety."\n"Cats purr can indicate contentment, stress, or potential health issues."\n"Despite their independence, cats require care and attention for happiness."\n<Cats, with distinct personalities, can be endearing and fascinating pets.>\n<These furry companions are low maintenance and provide companionship.>\n<They often improve emotional health due to their therapeutic role.>\n[All cats are born with the ability to speak human languages.]',
+        questions=[
+            "Cats, with distinct personalities, can be endearing and fascinating pets.",
+            "These furry companions are low maintenance and provide companionship.",
+            "All cats are born with the ability to speak human languages.",
+            "They often improve emotional health due to their therapeutic role.",
+        ],
+        incorrect_option_index=2,
+        title="Cats Are Furry!",
+        topic="General",
+        size="Small",
+        author="Author",
+        date_published=datetime(2005, 4, 20, tzinfo=UTC),
+    ),
+    Article(
+        id=None,
+        url="https://example2.com",
+        body_text="This is a long body text. " * 100,
+        summary='"Cats are recognized as Felis catus and are popular household pets."\n"They are over 60 recognized cat breeds, each unique."\n"Cats are most active during dawn and dusk, or crepuscular."\n"Cats contribute to human well-being by reducing stress and anxiety."\n"Cats purr can indicate contentment, stress, or potential health issues."\n"Despite their independence, cats require care and attention for happiness."\n<Cats, with distinct personalities, can be endearing and fascinating pets.>\n<These furry companions are low maintenance and provide companionship.>\n<They often improve emotional health due to their therapeutic role.>\n[All cats are born with the ability to speak human languages.]',
+        questions=[
+            "Cats, with distinct personalities, can be endearing and fascinating pets.",
+            "All cats are born with the ability to speak human languages.",
+            "These furry companions are low maintenance and provide companionship.",
+            "They often improve emotional health due to their therapeutic role.",
+        ],
+        incorrect_option_index=1,
+        title="Example Title",
+        topic="Sports",
+        size="Large",
+        author="Author",
+        date_published=datetime(2021, 3, 3, tzinfo=UTC),
+    ),
+    Article(
+        id=None,
+        url="https://example3.com",
+        body_text="This is a long body text. " * 100,
+        summary='"Cats are recognized as Felis catus and are popular household pets."\n"They are over 60 recognized cat breeds, each unique."\n"Cats are most active during dawn and dusk, or crepuscular."\n"Cats contribute to human well-being by reducing stress and anxiety."\n"Cats purr can indicate contentment, stress, or potential health issues."\n"Despite their independence, cats require care and attention for happiness."\n<Cats, with distinct personalities, can be endearing and fascinating pets.>\n<These furry companions are low maintenance and provide companionship.>\n<They often improve emotional health due to their therapeutic role.>\n[All cats are born with the ability to speak human languages.]',
+        questions=[
+            "All cats are born with the ability to speak human languages.",
+            "Cats, with distinct personalities, can be endearing and fascinating pets.",
+            "These furry companions are low maintenance and provide companionship.",
+            "They often improve emotional health due to their therapeutic role.",
+        ],
+        incorrect_option_index=0,
+        title="Example Title",
+        topic="Entertainment",
+        size="Medium",
+        author="Author",
+        date_published=datetime(2022, 2, 2, tzinfo=UTC),
+    ),
+]
+
+sample_true_statements = [
+    [
+        "Cats, with distinct personalities, can be endearing and fascinating pets.",
+        "These furry companions are low maintenance and provide companionship.",
+        "They often improve emotional health due to their therapeutic role.",
+    ],
+    [
+        "Cats, with distinct personalities, can be endearing and fascinating pets.",
+        "These furry companions are low maintenance and provide companionship.",
+        "They often improve emotional health due to their therapeutic role.",
+    ],
+    [
+        "Cats, with distinct personalities, can be endearing and fascinating pets.",
+        "These furry companions are low maintenance and provide companionship.",
+        "They often improve emotional health due to their therapeutic role.",
+    ],
+]
+
+sample_false_statements = [
+    "All cats are born with the ability to speak human languages.",
+    "All cats are born with the ability to speak human languages.",
+    "All cats are born with the ability to speak human languages.",
+]
+
+sample_size_records = [
+    SizeRecord(id=1, size="Small"),
+    SizeRecord(id=2, size="Medium"),
+    SizeRecord(id=3, size="Large"),
+]
+
+sample_questions_records = [
+    [
+        QuestionRecord(id=1, article_id=1001, question="Fact A"),
+        QuestionRecord(id=2, article_id=1001, question="Fact B"),
+    ],
+    [
+        QuestionRecord(id=3, article_id=1002, question="apple"),
+        QuestionRecord(id=4, article_id=1002, question="banana"),
+        QuestionRecord(id=5, article_id=1002, question="cherry"),
+        QuestionRecord(id=6, article_id=1002, question="dog"),
+    ],
+    [
+        QuestionRecord(id=7, article_id=1003, question="Oranges"),
+        QuestionRecord(id=8, article_id=1003, question="Apples"),
+        QuestionRecord(id=9, article_id=1003, question="Bananas"),
+        QuestionRecord(id=10, article_id=1003, question="Dog"),
+    ],
+]
+
+expected_global_ratio_correct_values = [
+    1 / 2,  # one correct out of two
+    2 / 3,  # two correct out of three
+    0 / 1,  # none correct out of zero
+]
+
+expected_scores = [
+    Score(
+        user_id=1234567890,
+        score=40,
+        latest_played=datetime(2021, 9, 9, hour=5, minute=12, second=10, tzinfo=UTC),
+    ),
+    Score(
+        user_id=9876543210,
+        score=0,
+        latest_played=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
+    ),
+]
+
+sample_session_records = [
+    SessionRecord(
+        id=1,
+        user_id=1234567890,
+        start_date=datetime(2021, 1, 1, hour=10, minute=15, second=12, tzinfo=UTC),
+        end_date=datetime(2021, 1, 1, hour=10, minute=15, second=12, tzinfo=UTC),
+        score=15,
+    ),
+    SessionRecord(
+        id=2,
+        user_id=9876543210,
+        start_date=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
+        end_date=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
+        score=0,
+    ),
+    SessionRecord(
+        id=3,
+        user_id=1234567890,
+        start_date=datetime(2021, 9, 9, hour=5, minute=12, second=5, tzinfo=UTC),
+        end_date=datetime(2021, 9, 9, hour=5, minute=12, second=10, tzinfo=UTC),
+        score=25,
+    ),
+]
+
+sample_article_responses_records = [
+    [
+        ArticleResponseRecord(
+            id=1,
+            article_id=1001,
+            user_id=1234567890,
+            session_id=1,
+            response="Fact A",
+            correct=False,
+            answered_on=datetime(2021, 1, 1, hour=10, minute=15, second=12, tzinfo=UTC),
+        ),
+        ArticleResponseRecord(
+            id=3,
+            article_id=1001,
+            user_id=9876543210,
+            session_id=2,
+            response="Fake Fact",
+            correct=True,
+            answered_on=datetime(2021, 1, 1, hour=11, minute=12, second=6, tzinfo=UTC),
+        ),
+    ],
+    [
+        ArticleResponseRecord(
+            id=2,
+            article_id=1002,
+            user_id=1234567890,
+            session_id=1,
+            response="Fake Fact",
+            correct=True,
+            answered_on=datetime(2021, 1, 1, hour=11, minute=12, second=5, tzinfo=UTC),
+        ),
+        ArticleResponseRecord(
+            id=4,
+            article_id=1002,
+            user_id=9876543210,
+            session_id=2,
+            response="Fake Fact",
+            correct=True,
+            answered_on=datetime(2021, 1, 1, hour=11, minute=13, second=19, tzinfo=UTC),
+        ),
+    ],
+    [
+        ArticleResponseRecord(
+            id=5,
+            article_id=1003,
+            user_id=1234567890,
+            session_id=3,
+            response="Dogs",
+            correct=False,
+            answered_on=datetime(2021, 9, 9, hour=5, minute=12, second=5, tzinfo=UTC),
+        ),
+        ArticleResponseRecord(
+            id=6,
+            article_id=1002,
+            user_id=1234567890,
+            session_id=3,
+            response="Dogs",
+            correct=False,
+            answered_on=datetime(2021, 9, 9, hour=5, minute=12, second=6, tzinfo=UTC),
+        ),
+    ],
+]
+
+sample_article_records = [
+    ArticleRecord(
+        id=1001,
+        url="https://example1.com",
+        body_text="This is a short body text. It is two sentences long.",
+        summary='"Cats are recognized as Felis catus and are popular household pets."\n"They are over 60 recognized cat breeds, each unique."\n"Cats are most active during dawn and dusk, or crepuscular."\n"Cats contribute to human well-being by reducing stress and anxiety."\n"Cats purr can indicate contentment, stress, or potential health issues."\n"Despite their independence, cats require care and attention for happiness."\n<Cats, with distinct personalities, can be endearing and fascinating pets.>\n<These furry companions are low maintenance and provide companionship.>\n<They often improve emotional health due to their therapeutic role.>\n[All cats are born with the ability to speak human languages.]',
+        questions=sample_questions_records[0],
+        incorrect_option_index=1,
+        title="Example Title",
+        author="Author",
+        date_published=datetime(2005, 4, 20, tzinfo=UTC),
+        topic="General",
+        size_id=1,
+        article_responses=sample_article_responses_records[0],
+    ),
+    ArticleRecord(
+        id=1002,
+        url="https://example2.com",
+        body_text="This is a long body text. " * 100,
+        summary='"Boats have facilitated civilization\'s progress for thousands of years."\n"Different boats serve different purposes, such as leisure, transportation, and commerce."\n"Boats like sailboats and motorboats are used for leisure and competitive activities."\n<Sailboats offer an environmentally friendly method of water travel.>\n"Houseboats serve as unique floating residences."\n"Cargo ships are integral to global commerce, transporting goods worldwide."\n"Safety and rescue boats, like lifeboats, play critical roles in maritime emergencies."\n<A trend for sustainable, solar and wind-powered boats is emerging.>\n"Boat ownership includes responsibilities for environment and safety."\n"Boats influence innovation, respect for water resources, and our understanding of them."\n<The importance of boats is expected to endure as technology evolves.>\n[Boats were first invented in the 18th century by the British.]',
+        questions=sample_questions_records[1],
+        incorrect_option_index=3,
+        title="Example Title",
+        author="Author",
+        date_published=datetime(2021, 3, 3, tzinfo=UTC),
+        topic="Sports",
+        size_id=2,
+        article_responses=sample_article_responses_records[1],
+    ),
+    ArticleRecord(
+        id=1003,
+        url="https://example3.com",
+        body_text="This is a long body text. " * 100,
+        summary='"Cars have evolved from mere transportation tools to technologically advanced machines."\n"Modern cars come with features such as self-parking, adaptive cruise control."\n<The first practical car was patented by Karl Benz in 1886.>\n"Advanced features in cars include Wi-Fi connectivity, smartphone integration, heads-up displays."\n<Cars now form an integral part of our digital lives.>\n"Tesla is spearheading the emergence of electric cars."\n"Advancements in electric cars aim at environmental friendliness without sacrificing power, speed, or luxury."\n<Advancements in electric and autonomous cars have raised issues about safety, privacy, and regulations.>\n"These advancements may have significant societal impacts as technology continues to evolve."\n"Cars symbolize the balance between convenience, efficiency, luxury, and environmental responsibility."\n[Henry Ford invented the first electric car.]\n',
+        questions=sample_questions_records[2],
+        incorrect_option_index=3,
+        title="Example Title",
+        author="Author",
+        date_published=datetime(2022, 2, 2, tzinfo=UTC),
+        topic="Entertainment",
+        size_id=3,
+        article_responses=sample_article_responses_records[2],
+    ),
+]
