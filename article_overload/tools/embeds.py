@@ -114,17 +114,27 @@ def create_start_game_embed(player: Player) -> Embed:
         A Discord embed object containing the player's details.
 
     """
+    rules = (
+        "\n**Game Rules**\n"
+        "=========================================================\n"
+        "1. **Objective**: Identify false statement in the provided article summaries using the dropdown options.\n\n"
+        "2. **Game Duration**: The game continues until you end it or answer incorrectly too many times.\n\n"
+        "3. **Scoring**: Points are awarded for each correct answer and deducted for each incorrect one.\n\n"
+        "4. **Abilities**: Earn abilities that can help you in the game: add time, reduce options...\n\n"
+        "5. **Timer**: Each article has a timer where length is based on your difficulty choice.\n\n"
+    )
+
     embed = Embed(
         title="Welcome to Article Overload",
+        description=(
+            f"**Player Details**\n"
+            f"**Player ID**: {player.get_player_id()}\n"
+            f"**Display Name**: {player.get_display_name()}\n"
+            f"**Score**: {player.get_score()}\n"
+            f"{rules}"
+        ),
         color=Color.green(),
     )
-    embed.add_field(name="Player ID", value=player.get_player_id(), inline=False)
-    embed.add_field(
-        name="Display Name",
-        value=player.get_display_name(),
-        inline=False,
-    )
-    embed.add_field(name="Score", value=player.get_score(), inline=False)
     embed.set_thumbnail(url=player.get_avatar_url())
     return embed
 
