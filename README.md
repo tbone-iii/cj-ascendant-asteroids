@@ -85,5 +85,22 @@ The 'Article Overload' bot is built following a 'Cog Based' architecture where g
 
 ### Data Design Flow
 
+Below illustrates to flow between the Article Overload bot, the player(s), and the Discord Server
+
 ![data_design_flow](docs/images/article_overload_data_design_flow.drawio.png)
 
+**Article Overload Bot**:
+- Processes commands and interactions with the Discord server.
+- Saves and retrieves game data via API calls to the database handler.
+
+**Database:**
+- Stores game data, user stats, and relevant information.
+- Database handler processes data requests.
+
+**API Endpoint:**
+- Interface for the bot to communicate with the database.
+- Manages data operations like saving game data and retrieving user stats.
+
+**Player(s):**
+- Players/Users interact with the bot through Discord.
+- Send commands and receive responses from the bot.
