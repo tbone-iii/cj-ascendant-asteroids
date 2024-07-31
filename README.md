@@ -51,3 +51,56 @@ $ .venv/bin/Activate.ps1
 ```shell
 pip install -r requirements.txt
 ```
+
+## System Design
+
+### Technical Features
+
+**Interactive UI**: Uses Discord's interaction components such as buttons and select menus for real-time game interactions.
+
+
+**AI-Generated Content**: Game content is pre-generated using AI where articles are pulled from free news API sites and then altered by AI to create false and incorrect statements. This pre-generated content is stored in the database, reducing the need for constant real-time AI generation and ensuring cost efficiency, and is randomly selected from the database during gameplay.
+
+**Real-Time Feedback**: Provides real-time updates and feedback to users based on their interactions and game progress, such as score and time available.
+
+**Cog-Based Architecture**: The 'Article Overload' bot is modularized using [Discord.py's Cog System](https://discordpy.readthedocs.io/en/stable/ext/commands/cogs.html)
+
+**SQLite Database**: Utilized for persistent data storage, tracking game sessions, player scores, and article responses
+
+**Asynchronous Operations**: Ensures non-blocking operations for smooth user experience.
+
+**Logging**: Comprehensive logging using Python's logging module to track bot events and errors.
+
+### Architectural Design
+
+The 'Article Overload' bot is built following a 'Cog Based' architecture where game logic is encapsulated in different functionalities aka 'cog'. Cogs in this bot include:
+
+1. **game**: Provides the main game loop, setting up the game and player objects. Interacts with the database to store/retrieve game data.
+
+2. **user statistics**: Provides commands for the player/user to view statistics such as individual and leaderboards score.
+
+3. **moderation**: Allows management of inbound bot messaging, such as purging of associated game messages
+
+4. **error**: Provides graceful handling of errors that may arise during bot creation.
+
+### Data Design Flow
+
+Below illustrates to flow between the Article Overload bot, the player(s), and the Discord Server
+
+![data_design_flow](docs/images/article_overload_data_design_flow.drawio.png)
+
+**Article Overload Bot**:
+- Processes commands and interactions with the Discord server.
+- Saves and retrieves game data via API calls to the database handler.
+
+**Database:**
+- Stores game data, user stats, and relevant information.
+- Database handler processes data requests.
+
+**API Endpoint:**
+- Interface for the bot to communicate with the database.
+- Manages data operations like saving game data and retrieving user stats.
+
+**Player(s):**
+- Players/Users interact with the bot through Discord.
+- Send commands and receive responses from the bot.
