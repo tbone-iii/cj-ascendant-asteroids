@@ -107,8 +107,11 @@ class PaginationView(View):
         Description: Callback to update embed and page content.
         :Return: None
         """
-        self.left_button.disabled = self.page < 1
-        self.right_button.disabled = self.page == len(self.data) - 1
+        is_first_page = self.page < 1
+        is_last_page = self.page == len(self.data) - 1
+
+        self.left_button.disabled = is_first_page
+        self.right_button.disabled = is_last_page
 
         embed_data = self.data[self.page]["embed"]
         if isinstance(self.data[self.page]["embed"], Embed):

@@ -101,9 +101,10 @@ class UserStatsCog(commands.GroupCog, group_name="view", group_description="View
                 }
             )
 
+        view = PaginationView(org_user=interaction.user.id, data=data)
         await interaction.response.send_message(
-            embed=embed,
-            view=PaginationView(org_user=interaction.user.id, data=data),
+            embeds=[stat_embedses[0], *image_embedses[0]],
+            view=view,
         )
 
     @app_commands.command(name="player", description="Shows the user stats overview.")
