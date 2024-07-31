@@ -75,7 +75,7 @@ pip install -r requirements.txt
 
 The 'Article Overload' bot is built following a 'Cog Based' architecture where game logic is encapsulated in different functionalities aka 'cog'. Cogs in this bot include:
 
-1. **game**: Provides the main game loop, setting up the game and player objects. Interacts with the database to store/retrieve game data. 
+1. **game**: Provides the main game loop, setting up the game and player objects. Interacts with the database to store/retrieve game data.
 
 2. **user statistics**: Provides commands for the player/user to view statistics such as individual and leaderboards score.
 
