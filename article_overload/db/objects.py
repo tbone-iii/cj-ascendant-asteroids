@@ -134,7 +134,7 @@ class Score(BaseModel):
         if self.latest_played is None:
             return "Never"
 
-        return self.latest_played.strftime("%B %d, %Y")
+        return self.latest_played.strftime("%b %d, %Y")
 
 
 class UserTopicStat(BaseModel):

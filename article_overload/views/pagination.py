@@ -1,10 +1,10 @@
 from collections.abc import Iterable
-from itertools import batched
 
 from discord import ButtonStyle, Embed, Interaction, SelectOption
 from discord.ui import Button, Select, View, button
 
 from article_overload.exceptions import PaginationViewMissingButtonsError
+from article_overload.log import our_logger
 
 
 class PaginationSelect(Select):
@@ -36,33 +36,31 @@ class PaginationSelect(Select):
         Description: Callback for checking if a value was selected.
         :Return: None
         """
-        if isinstance(self.full_data[int(self.values[0]) - 1]["embed"], Embed):
+        clicked_index = int(self.values[0])
+        view = PaginationView(
+            interaction.user.id,
+            self.full_data,
+            page=clicked_index,
+        )
+        embed = self.full_data[clicked_index]["embed"]
+        if isinstance(self.full_data[clicked_index]["embed"], Embed):
             await interaction.response.edit_message(
-                embed=(self.full_data[int(self.values[0]) - 1]["embed"]),
-                view=PaginationView(
-                    interaction.user.id,
-                    self.full_data,
-                    page=int(self.values[0]) - 1,
-                ),
+                embed=embed,
+                view=view,
             )
-
         else:
             await interaction.response.edit_message(
-                embeds=(self.full_data[int(self.values[0]) - 1]["embed"]),
-                view=PaginationView(
-                    interaction.user.id,
-                    self.full_data,
-                    page=int(self.values[0]) - 1,
-                ),
+                embeds=embed,
+                view=view,
             )
 
 
 class PaginationView(View):
     """Pagination view class."""
 
-    PAGE_SIZE = 25
+    PAGE_SIZE = 5
 
-    def __init__(self, org_user: int, data: list, page: int = 0, page_size: int = PAGE_SIZE) -> None:
+    def __init__(self, org_user: int, data: list, page: int = 0) -> None:
         """Subclass of View.
 
         Description: Initializes View subclass to create a pagination system.
@@ -81,15 +79,10 @@ class PaginationView(View):
         self.left_button: Button = left_button
         self.right_button: Button = right_button
 
-        for data_chunk in batched(data, page_size):
-            self.add_item(PaginationSelect(data_chunk, self.data, page))
+        self.add_item(PaginationSelect(data=data, full_data=self.data, page=page))
 
     @button(emoji="<:left_arrow:1049429857488093275>", style=ButtonStyle.blurple)
-    async def left_arrow(
-        self,
-        interaction: Interaction,
-        _: Button,
-    ) -> None:
+    async def left_arrow(self, interaction: Interaction, _: Button) -> None:
         """Left button.
 
         Description: Moves page selection to the left.
@@ -99,11 +92,7 @@ class PaginationView(View):
         await self.update_page(interaction)
 
     @button(emoji="<:right_arrow:1049430086257999882>", style=ButtonStyle.blurple)
-    async def right_arrow(
-        self,
-        interaction: Interaction,
-        _: Button,
-    ) -> None:
+    async def right_arrow(self, interaction: Interaction, _: Button) -> None:
         """Right button.
 
         Description: Moves page selection to the right.
@@ -121,15 +110,18 @@ class PaginationView(View):
         self.left_button.disabled = self.page < 1
         self.right_button.disabled = self.page == len(self.data) - 1
 
+        embed_data = self.data[self.page]["embed"]
         if isinstance(self.data[self.page]["embed"], Embed):
+            our_logger.debug(f"Updating page to {self.page=} for single embed")
             await interaction.response.edit_message(
-                embed=(self.data[self.page]["embed"]),
+                embed=embed_data,
                 view=self,
             )
 
         else:
+            our_logger.debug(f"Updating page to {self.page=} for multi-embed")
             await interaction.response.edit_message(
-                embeds=(self.data[self.page]["embed"]),
+                embeds=embed_data,
                 view=self,
             )
 

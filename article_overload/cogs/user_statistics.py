@@ -12,8 +12,8 @@ from discord.ext import commands
 from article_overload.bot import ArticleOverloadBot
 from article_overload.constants import (
     SCORE_BOARD_COLOR,
+    SCORE_BOARD_NAME_SPACING_SIZE,
     SCORE_BOARD_NUM_SCORES_TO_SHOW,
-    SCORE_BOARD_SPACING_SIZE,
     ImageURLs,
 )
 from article_overload.db.objects import UserTopicStat
@@ -44,11 +44,12 @@ class UserStatsCog(commands.GroupCog, group_name="view", group_description="View
         Description: Shows the scores of the top ten players.
         :Return: None
         """
-        size = SCORE_BOARD_SPACING_SIZE + 3
+        sizes = (len("Rank") + 2, SCORE_BOARD_NAME_SPACING_SIZE, len("Score") + 3, len("Dec 31, 2021"))
         header_text = (
-            f"`{_left_padded_text("Name", size)}"
-            f"{_left_padded_text("Score", size)}"
-            f"{_left_padded_text("Last Seen", size)}`\n"
+            f"`{_left_padded_text("Rank", sizes[0])}"
+            f"{_left_padded_text("Name", sizes[1])}"
+            f"{_left_padded_text("Score", sizes[2])}"
+            f"{_left_padded_text("Last Seen", sizes[3])}`\n"
         )
 
         data: list[dict[str, Any]] = []
@@ -57,17 +58,20 @@ class UserStatsCog(commands.GroupCog, group_name="view", group_description="View
 
         stat_embedses = []
         batch_size = 4
+        rank = 0
         for score_objects in batched(player_scores, batch_size):
             embed = Embed()
             embed.add_field(name="Leaderboard", value=header_text)
             stat_embedses.append(embed)
             string = ""
             for score_object in score_objects:
+                rank += 1
                 name = (await self.client.fetch_user(score_object.user_id)).name
                 string += (
-                    f"`{_left_padded_text(name, size)}"
-                    f"{_left_padded_text(str(score_object.score), size)}"
-                    f"{_left_padded_text(score_object.latest_played_formatted, size)}`\n"
+                    f"`{_left_padded_text(str(rank), sizes[0])}"
+                    f"{_left_padded_text(name, sizes[1])}"
+                    f"{_left_padded_text(str(score_object.score), sizes[2])}"
+                    f"{_left_padded_text(score_object.latest_played_formatted, sizes[3])}`\n"
                 )
             embed.add_field(
                 name="",
@@ -80,6 +84,7 @@ class UserStatsCog(commands.GroupCog, group_name="view", group_description="View
             embeds = []
             for score_object in score_objects:
                 user = await self.client.fetch_user(score_object.user_id)
+                embed = Embed(url="https://www.discord.com")
                 embed.set_image(url=user.avatar.url if user.avatar else user.default_avatar)
                 embeds.append(embed)
             image_embedses.append(embeds)
@@ -87,11 +92,18 @@ class UserStatsCog(commands.GroupCog, group_name="view", group_description="View
         for index, mega_embeds in enumerate(zip(stat_embedses, image_embedses, strict=True)):
             stat_embeds, image_embeds = mega_embeds
             embeds = [stat_embeds, *image_embeds]
-            data.append({"title": f"Page {index + 1}", "description": "Click to view", "num": index, "embed": embeds})
+            data.append(
+                {
+                    "title": f"Top {batch_size // 4 + batch_size * index} - {batch_size * (index + 1)}",
+                    "description": "Click to view",
+                    "num": index,
+                    "embed": embeds,
+                }
+            )
 
         await interaction.response.send_message(
             embed=embed,
-            view=PaginationView(org_user=interaction.user.id, data=data, page_size=4),
+            view=PaginationView(org_user=interaction.user.id, data=data, page_size=1),
         )
 
     @app_commands.command(name="player", description="Shows the user stats overview.")

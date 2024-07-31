@@ -1,4 +1,4 @@
-from discord import Interaction, app_commands
+from discord import DiscordException, Embed, Interaction, app_commands
 from discord.ext import commands
 
 from article_overload.bot import ArticleOverloadBot
@@ -21,9 +21,7 @@ from article_overload.tools.embeds import (
 from article_overload.views import ContinueButtonView, GameView, StartButtonView
 
 
-class ArticleOverload(
-    commands.GroupCog, group_name="article_overload", group_description="Game commmands"
-):
+class ArticleOverload(commands.GroupCog, group_name="article_overload", group_description="Game commmands"):
     """ArticleOverload cog class."""
 
     def __init__(self, client: ArticleOverloadBot) -> None:
@@ -60,14 +58,10 @@ class ArticleOverload(
             return
 
         # Begin game
-        begin_game(
-            game, interaction, start_timer_seconds=start_button.start_timer_seconds
-        )
+        begin_game(game, interaction, start_timer_seconds=start_button.start_timer_seconds)
 
         # The Sessions table in the database tracks users and scores
-        await initialize_sessions_table(
-            database_handler=self.database_handler, game=game
-        )
+        await initialize_sessions_table(database_handler=self.database_handler, game=game)
 
         our_logger.info(f"Game loop started for '{interaction.user.name}'")
         flag = True
@@ -86,9 +80,7 @@ class ArticleOverload(
         await self.notify_database_of_game_end_for_players(game, game.players)
         return
 
-    @app_commands.command(
-        name="end_game", description=CommandDescriptions.GAME_END.value
-    )
+    @app_commands.command(name="end_game", description=CommandDescriptions.GAME_END.value)
     async def end_game(self, interaction: Interaction) -> None:
         """Bot command.
 
@@ -109,20 +101,14 @@ class ArticleOverload(
         duration = game.get_game_duration()
         self.client.games.pop(interaction.user.id)
 
-        return await interaction.response.send_message(
-            f"Game ended! Duration: {duration}"
-        )
+        return await interaction.response.send_message(f"Game ended! Duration: {duration}")
 
-    @app_commands.command(
-        name="list_abilities", description="List all possible abilities."
-    )
+    @app_commands.command(name="list_abilities", description="List all possible abilities.")
     async def list_abilities(self, interaction: Interaction) -> None:
         """Bot command to list all possible abilities."""
         abilities = [ability.value for ability in AbilityType]
         abilities_list = "\n".join(abilities)
-        await interaction.response.send_message(
-            f"Possible abilities:\n{abilities_list}"
-        )
+        await interaction.response.send_message(f"Possible abilities:\n{abilities_list}")
 
     def is_existing_game_player(self, interaction: Interaction) -> bool:
         """Check if the user is already in a game.
@@ -132,9 +118,7 @@ class ArticleOverload(
         """
         return interaction.user.id in self.client.games
 
-    async def notify_database_of_game_end_for_players(
-        self, game: Game, players: list[Player]
-    ) -> None:
+    async def notify_database_of_game_end_for_players(self, game: Game, players: list[Player]) -> None:
         """Notify the database of the game end for all players.
 
         Asyncio is used here to parallelize the database calls.
@@ -142,9 +126,7 @@ class ArticleOverload(
         :Return: None
         """
         session_ids = [
-            session_id
-            for player in players
-            if (session_id := game.get_session_id_for_player(player)) is not None
+            session_id for player in players if (session_id := game.get_session_id_for_player(player)) is not None
         ]
         scores = [player.get_score() for player in players]
         await self.database_handler.end_sessions(session_ids=session_ids, scores=scores)
@@ -168,9 +150,7 @@ class ArticleOverload(
         self.client.games.update({interaction.user.id: game})
         return game, player
 
-    async def initialize_menu(
-        self, interaction: Interaction, player: Player
-    ) -> StartButtonView:
+    async def initialize_menu(self, interaction: Interaction, player: Player) -> StartButtonView:
         """Initialize the start game menu.
 
         :Return: `StartButtonView`
@@ -201,49 +181,46 @@ class ArticleOverload(
             )
         )
 
-    async def main_game_loop(
-        self, game: Game, interaction: Interaction, database_handler: DatabaseHandler
-    ) -> bool:
-        """Run the main game loop.
-
-        Description: Main game loop for the ArticleOverload game.
-        :Return: flag to continue the game
-        """
+    @staticmethod
+    async def prepare_game_article(
+        interaction: Interaction,
+        database_handler: DatabaseHandler,
+        game: Game,
+        player: Player,
+    ) -> tuple[Embed, GameView]:
+        """Prepare the game article."""
         article_handler = await database_handler.get_random_article()
 
-        player = game.players[0]  # TODO: Change this to be dynamic for PvP
-        embed = create_article_embed(
-            article_handler=article_handler, player=player, game=game
-        )
+        embed = create_article_embed(article_handler=article_handler, player=player, game=game)
 
         game_view = GameView(
             interaction.user.id,
             article_handler,
             timeout=game.article_timer * 0.75,
         )
+        return embed, game_view
+
+    async def main_game_loop(self, game: Game, interaction: Interaction, database_handler: DatabaseHandler) -> bool:
+        """Run the main game loop.
+
+        Description: Main game loop for the ArticleOverload game.
+        :Return: flag to continue the game
+        """
+        article_handler = await database_handler.get_random_article()
+        player = game.players[0]  # TODO: Change this to be dynamic for PvP
 
         is_valid = False
         while not is_valid:
+            embed, game_view = await self.prepare_game_article(interaction, database_handler, game, player)
+
             try:
                 await interaction.edit_original_response(
                     embed=embed,
                     view=game_view,
                 )
                 is_valid = True
-
-            except Exception as e:
-                print("Invalid article, rerolling")
-                article_handler = await database_handler.get_random_article()
-
-                embed = create_article_embed(
-                    article_handler=article_handler, player=player, game=game
-                )
-
-                game_view = GameView(
-                    interaction.user.id,
-                    article_handler,
-                    timeout=game.article_timer * 0.75,
-                )
+            except DiscordException as e:
+                our_logger.warning(f"Invalid article, re-rolling article: {e}")
 
         await game_view.wait()
 
@@ -260,9 +237,7 @@ class ArticleOverload(
             await game_view.wait()
 
         if game_view.sentence is None:
-            await interaction.edit_original_response(
-                embed=create_time_up_embed(player, game), view=None
-            )
+            await interaction.edit_original_response(embed=create_time_up_embed(player, game), view=None)
             return False
 
         is_correct = game_view.sentence == article_handler.false_sentence
@@ -293,9 +268,7 @@ class ArticleOverload(
             article=article_handler._article,  # noqa: SLF001
             article_response=article_response,
         )
-        our_logger.info(
-            f"Article response {article_response} added for '{interaction.user.name}'"
-        )
+        our_logger.info(f"Article response {article_response} added for '{interaction.user.name}'")
 
         if player.incorrect == MAX_INCORRECT:
             our_logger.info(f"Too many incorrect answers for '{interaction.user.name}'")
@@ -313,14 +286,9 @@ class ArticleOverload(
         return True
 
 
-def check_user_submission(
-    interaction: Interaction, org_interaction: Interaction, game_view: GameView
-) -> bool:
+def check_user_submission(interaction: Interaction, org_interaction: Interaction, game_view: GameView) -> bool:
     """Check if the user submission is valid."""
-    return (
-        interaction.user.id == org_interaction.user.id
-        and game_view.sentence is not None
-    )
+    return interaction.user.id == org_interaction.user.id and game_view.sentence is not None
 
 
 async def setup(client: ArticleOverloadBot) -> None:
@@ -332,9 +300,7 @@ async def setup(client: ArticleOverloadBot) -> None:
     await client.add_cog(ArticleOverload(client))
 
 
-def begin_game(
-    game: Game, interaction: Interaction, start_timer_seconds: float
-) -> None:
+def begin_game(game: Game, interaction: Interaction, start_timer_seconds: float) -> None:
     """Begin the game.
 
     Description: Begins the game.
@@ -345,9 +311,7 @@ def begin_game(
     our_logger.info(f"'{interaction.user.name}' started a game.\n")
 
 
-async def initialize_sessions_table(
-    database_handler: DatabaseHandler, game: Game
-) -> None:
+async def initialize_sessions_table(database_handler: DatabaseHandler, game: Game) -> None:
     """Initialize the sessions table for all players in the game.
 
     Description: Initializes the sessions table.
