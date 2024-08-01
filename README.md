@@ -1,6 +1,7 @@
 # Python Discord Code Jam 11 - Ascendent Asteroids
 
 ## Article Overload: Anti-Cyberwarfare
+https://github.com/user-attachments/assets/77f72720-ae77-43e7-8fe4-048713150dab
 
 ### Stress Testing the Human Mind
 In an era of mass information, we are constantly being inundated with disinformation and misinformation. Now, with large language models that we call AI, we're being swamped by false information, whether it is intentional or not. So what better way to learn how to deal with this than by putting yourself to the test!
