@@ -3,6 +3,7 @@ import json
 import os
 import secrets
 from datetime import UTC
+from inspect import cleandoc
 from pathlib import Path
 from typing import Any
 
@@ -62,23 +63,30 @@ class ArticleTextInfo:
 
         self.sentence_options = sentence_options
         self.incorrect_option = incorrect_option
-        if not isinstance(self.sentence_options, list):
-            self.sentence_options = []
-            self.incorrect_option = -1
-            scanning = False
-            for char in list(self.summary):
-                if char in {"<", "["}:
-                    if char == "[":
-                        self.incorrect_option = len(self.sentence_options)
+        if isinstance(self.sentence_options, list):
+            return
 
-                    self.sentence_options.append("")
-                    scanning = True
+        self.build_sentence_options(summary)
 
-                elif char in {">", "]"}:
-                    scanning = False
+    def build_sentence_options(self, summary: str) -> None:
+        """Build the sentence options."""
+        self.sentence_options = []
+        self.incorrect_option = None
 
-                elif scanning:
-                    self.sentence_options[-1] += char
+        sentences = [sentence for sentence in summary.split("\n") if sentence]
+        counter = 0
+        for sentence in sentences:
+            if sentence.startswith("[") and sentence.endswith("]"):
+                if self.incorrect_option is not None:
+                    self.incorrect_option = None
+                    return
+                self.incorrect_option = counter
+                self.sentence_options.append(sentence.removeprefix("[").removesuffix("]"))
+                continue
+            if sentence.startswith("<") and sentence.endswith(">"):
+                self.sentence_options.append(sentence.removeprefix("<").removesuffix(">"))
+                counter += 1
+                continue
 
 
 class Article:
@@ -109,26 +117,26 @@ class Article:
 
             options_out += "\n"
 
-        return f"""
------ {self.article_context_info.title} -----
------ INFO -----
-Topic: {self.article_selection_info.topic}
-Size: {self.article_selection_info.size}
-Date: {self.article_context_info.date}
-URL: {self.article_context_info.url}
-Author: {self.article_context_info.author}
------ TEXT BODY START -----
-{self.article_text_info.body_text}
------ TEXT BODY END -----
+        return cleandoc(f"""
+            ----- {self.article_context_info.title} -----
+            ----- INFO -----
+            Topic: {self.article_selection_info.topic}
+            Size: {self.article_selection_info.size}
+            Date: {self.article_context_info.date}
+            URL: {self.article_context_info.url}
+            Author: {self.article_context_info.author}
+            ----- TEXT BODY START -----
+            {self.article_text_info.body_text}
+            ----- TEXT BODY END -----
 
------ SUMMARY START -----
-{self.article_text_info.summary}
------ SUMMARY END -----
+            ----- SUMMARY START -----
+            {self.article_text_info.summary}
+            ----- SUMMARY END -----
 
------ OPTIONS START -----
-{options_out}
------ OPTIONS END -----
-"""
+            ----- OPTIONS START -----
+            {options_out}
+            ----- OPTIONS END -----
+        """)
 
     def write(self) -> None:
         """Add this article to the json file list of articles."""

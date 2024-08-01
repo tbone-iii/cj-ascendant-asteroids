@@ -17,7 +17,7 @@ def get_json_body(file_path: Path) -> JsonBody:
 
     :return: The JSON body as a dictionary.
     """
-    with file_path.open("r") as file:
+    with file_path.open("r", encoding="utf-8") as file:
         return json.load(file)
 
 

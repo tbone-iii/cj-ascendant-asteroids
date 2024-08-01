@@ -4,6 +4,7 @@ from discord.ext import commands
 from article_overload.bot import ArticleOverloadBot
 from article_overload.constants import MAX_INCORRECT, ImageURLs
 from article_overload.db.handler import DatabaseHandler
+from article_overload.db.items.article_handler import ArticleHandler
 from article_overload.db.objects import ArticleResponse
 from article_overload.exceptions import NoSessionFoundError
 from article_overload.game_classes import AbilityType, Game, Player
@@ -184,13 +185,11 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
     @staticmethod
     async def prepare_game_article(
         interaction: Interaction,
-        database_handler: DatabaseHandler,
+        article_handler: ArticleHandler,
         game: Game,
         player: Player,
     ) -> tuple[Embed, GameView]:
         """Prepare the game article."""
-        article_handler = await database_handler.get_random_article()
-
         embed = create_article_embed(article_handler=article_handler, player=player, game=game)
 
         game_view = GameView(
@@ -206,12 +205,17 @@ class ArticleOverload(commands.GroupCog, group_name="article_overload", group_de
         Description: Main game loop for the ArticleOverload game.
         :Return: flag to continue the game
         """
-        article_handler = await database_handler.get_random_article()
         player = game.players[0]  # TODO: Change this to be dynamic for PvP
 
         is_valid = False
         while not is_valid:
-            embed, game_view = await self.prepare_game_article(interaction, database_handler, game, player)
+            article_handler = await database_handler.get_random_article()
+            embed, game_view = await self.prepare_game_article(
+                interaction,
+                article_handler,
+                game,
+                player,
+            )
 
             try:
                 await interaction.edit_original_response(
